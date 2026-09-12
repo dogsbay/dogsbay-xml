@@ -1,9 +1,9 @@
 name: Build & Test
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:   # enables the "Run workflow" button + `gh workflow run`
 
 # Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
@@ -38,7 +38,7 @@ jobs:
       # licensing decision.
       - uses: gradle/actions/setup-gradle@v5
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Build and test
         working-directory: editor

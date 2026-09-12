@@ -1,9 +1,9 @@
 name: E2E Smoke (CLI vs demo corpus)
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
