@@ -164,7 +164,7 @@ dependencies {
     implementation("com.google.guava:guava:33.4.8-jre")
 
     // ICU4J
-    implementation("com.ibm.icu:icu4j:77.1")
+    implementation("com.ibm.icu:icu4j:78.3")
 
     // Jackson JSON/YAML
     implementation("com.fasterxml.jackson.core:jackson-core:${property("jacksonVersion")}")
