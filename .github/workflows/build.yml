@@ -25,7 +25,7 @@ jobs:
       - name: Set up JDK 25
         # Match the Gradle toolchain (JavaLanguageVersion.of(25)) so the runtime
         # JDK and the toolchain agree and foojay doesn't download a second JDK.
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 25
