@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="installing-audacity">
+  <title>Installing <keyword keyref="product-name"/></title>
+  <taskbody>
+    <context>
+      <p><keyword keyref="product-name"/> is available for Windows, macOS, and
+      Linux. Download it from the official website or install it using your
+      system's package manager.</p>
+    </context>
+    <steps>
+      <step>
+        <cmd>Download <keyword keyref="product-name"/> from the official
+        website.</cmd>
+        <info><p>Visit <keyword keyref="download-url"/> and select the
+        installer for your operating system.</p></info>
+      </step>
+      <step platform="windows">
+        <cmd>Double-click the downloaded <filepath>.exe</filepath> installer
+        and follow the setup wizard.</cmd>
+        <info><p>Accept the default installation location
+        (<filepath>C:\Program Files\Audacity</filepath>) unless you have a
+        reason to change it.</p></info>
+      </step>
+      <step platform="mac">
+        <cmd>Open the downloaded <filepath>.dmg</filepath> file and drag
+        <keyword keyref="product-name"/> to your
+        <filepath>Applications</filepath> folder.</cmd>
+      </step>
+      <step platform="linux">
+        <cmd>Install from your distribution's package manager.</cmd>
+        <info>
+          <codeblock>
+# Ubuntu / Debian
+sudo apt install audacity
+
+# Fedora
+sudo dnf install audacity
+
+# Arch Linux
+sudo pacman -S audacity</codeblock>
+        </info>
+      </step>
+      <step>
+        <cmd>Launch <keyword keyref="product-name"/> to verify the
+        installation.</cmd>
+        <info>
+          <note type="tip"><p>On first launch, <keyword keyref="product-name"/>
+          may ask to scan for audio plugins. Click <uicontrol>OK</uicontrol>
+          to let it scan — this only happens once.</p></note>
+        </info>
+      </step>
+    </steps>
+    <result>
+      <p><keyword keyref="product-name"/>
+      <keyword keyref="product-version"/> is now installed and ready to
+      use.</p>
+    </result>
+  </taskbody>
+</task>

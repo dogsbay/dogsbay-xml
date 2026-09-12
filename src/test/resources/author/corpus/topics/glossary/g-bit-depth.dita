@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE glossentry PUBLIC "-//OASIS//DTD DITA Glossary Entry//EN" "glossentry.dtd">
+<glossentry id="gl-bit-depth">
+  <glossterm>Bit Depth</glossterm>
+  <glossdef>The number of bits used to represent each audio sample. Higher bit
+  depth provides greater dynamic range and precision. Common values are 16-bit
+  (CD quality), 24-bit (professional), and 32-bit float (internal
+  processing).</glossdef>
+</glossentry>

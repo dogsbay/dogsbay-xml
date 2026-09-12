@@ -1,0 +1,119 @@
+name: E2E Smoke (CLI vs demo corpus)
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# End-to-end proof that the assembled headless CLI actually processes real DITA:
+# build the editor, then run the DITA audits against the demo corpus
+# (dogsbay/dogsbay-xml-dita-tutorial) and assert the PLANTED issues still surface.
+# This catches audit regressions that the unit tests (synthetic fixtures) miss.
+#
+# The corpus repository is public, so this runs everywhere, forks included:
+# there is no secret to withhold from them and no reason to skip the one check
+# that proves the audits still find real problems in real DITA.
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout editor
+        uses: actions/checkout@v7
+        with:
+          path: editor
+
+      - name: Checkout demo corpus
+        id: demo
+        # continue-on-error here does NOT mean the job tolerates a missing corpus —
+        # the next step fails the job. It only lets us replace checkout's opaque
+        # "could not read Username for 'https://github.com'" with an actionable
+        # message naming the secret and the permission it needs.
+        continue-on-error: true
+        uses: actions/checkout@v7
+        with:
+          repository: dogsbay/dogsbay-xml-dita-tutorial
+          ref: main
+          path: demo
+
+      # Without this the job would report success while asserting nothing: the
+      # audit step is guarded on the corpus being present, so a checkout that
+      # quietly failed would reduce this workflow to a compile check that still
+      # showed a green tick. A green tick that doesn't mean the smoke test ran is
+      # worse than a red one. Fail fast, before the ~3min compile, so the cause
+      # is unambiguous.
+      - name: Require demo corpus
+        if: steps.demo.outcome != 'success'
+        run: |
+          echo "::error title=Demo corpus unavailable::Could not check out dogsbay/dogsbay-xml-dita-tutorial, so the e2e assertions cannot run. The repository is public, so this usually means it has moved, been renamed, or been made private again."
+          exit 1
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      # v5, not v6 — v6's caching component is proprietary. See build.yml.
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Compile editor
+        working-directory: editor
+        run: ./gradlew classes --console=plain
+
+      - name: Run DITA audits and assert planted issues
+        shell: bash
+        run: |
+          set -uo pipefail
+          DEMO="$GITHUB_WORKSPACE/demo"
+          DB="$GITHUB_WORKSPACE/editor/bin/dogsbay-xml"
+          chmod +x "$DB"
+          fail=0
+
+          # A successful checkout of the wrong ref (or an emptied repo) would still
+          # leave us asserting nothing — the audits would run over no input and the
+          # greps would simply not match. Prove the corpus is the one we expect.
+          if [ ! -f "$DEMO/audacity-guide.ditamap" ]; then
+            echo "::error title=Demo corpus incomplete::Checked out dogsbay/dogsbay-xml-dita-tutorial but $DEMO/audacity-guide.ditamap is missing. Has the corpus moved or been restructured?"
+            exit 1
+          fi
+
+          check() {  # check <label> <expected-substring> <command...>
+            local label="$1" expect="$2"; shift 2
+            echo "::group::$label"
+            local out; out="$("$@" 2>&1 || true)"
+            echo "$out"
+            echo "::endgroup::"
+            if printf '%s' "$out" | grep -qF -- "$expect"; then
+              echo "✅ $label — found: $expect"
+            else
+              echo "::error::$label — expected planted issue not found: $expect"
+              fail=1
+            fi
+          }
+
+          # index-audit: dangling "see" redirect to a non-existent entry.
+          check "index-audit dangling see" \
+            "see 'codecs' (no such entry)" \
+            "$DB" index-audit "$DEMO"
+
+          # conref-push-audit: orphan pushbefore with no mark sibling.
+          check "conref-push-audit orphan pushbefore" \
+            'pushbefore has no sibling conaction="mark"' \
+            "$DB" conref-push-audit "$DEMO"
+
+          # glossary-audit: abbreviated-form keyref typo (gl-bitdepth) resolves
+          # to no glossentry.
+          check "glossary-audit undefined keyref" \
+            'keyref="gl-bitdepth"' \
+            "$DB" glossary-audit "$DEMO" --root-map "$DEMO/audacity-guide.ditamap"
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::One or more planted issues were not detected — audit regression?"
+            exit 1
+          fi
+          echo "All planted issues detected — CLI ↔ corpus e2e passed."

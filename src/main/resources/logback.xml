@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender for standard output -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- stderr, not stdout: the CLI's stdout is its result, and a library's
+             log line in the middle of it breaks anything reading the output. -->
+        <target>System.err</target>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Suppress verbose JGit logging -->
+    <logger name="org.eclipse.jgit" level="WARN"/>
+    <logger name="org.eclipse.jgit.internal.storage.file" level="WARN"/>
+    <logger name="org.eclipse.jgit.internal.storage.file.FileSnapshot" level="ERROR"/>
+
+    <!-- Suppress JediEmulator warnings for unsupported terminal sequences (e.g. synchronized update ?2026h/l) -->
+    <logger name="com.jediterm.terminal.emulator.JediEmulator" level="ERROR"/>
+
+    <!-- Suppress other potentially verbose libraries -->
+    <logger name="org.apache.fop" level="WARN"/>
+    <logger name="org.apache.xerces" level="WARN"/>
+
+    <!-- ph-schematron logs one INFO line per document it validates, which on a
+         project-wide run is one line per file before any finding is printed. -->
+    <logger name="com.helger" level="WARN"/>
+
+    <!-- Root logger: INFO level for general application logging -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

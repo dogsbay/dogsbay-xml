@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="task_id">
+    <title>Task Title</title>
+
+    <shortdesc>Brief description of the task.</shortdesc>
+
+    <taskbody>
+        <context>
+            <p>When and why to perform this task.</p>
+        </context>
+
+        <steps>
+            <step>
+                <cmd>First step command.</cmd>
+            </step>
+
+            <step>
+                <cmd>Second step command.</cmd>
+            </step>
+
+            <step>
+                <cmd>Third step command.</cmd>
+            </step>
+        </steps>
+
+        <result>
+            <p>Expected outcome after completing the task.</p>
+        </result>
+    </taskbody>
+</task>

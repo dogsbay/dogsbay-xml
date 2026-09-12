@@ -1,0 +1,44 @@
+name: Cleanup artifacts
+
+# Keep only ONE build's artifacts at a time: after every Build & Test / Release
+# (and daily as a backstop), delete every artifact except those from the most
+# recent run. Keeps artifact storage minimal so it can't pile up against the
+# Actions/Packages storage quota.
+on:
+  workflow_run:
+    workflows: ["Build & Test", "Release"]
+    types: [completed]
+  schedule:
+    - cron: '17 4 * * *'   # daily backstop, 04:17 UTC
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write        # required to delete artifacts
+    steps:
+      - name: Keep only the latest run's artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest=$(gh api --paginate "repos/$REPO/actions/artifacts" \
+            --jq '[.artifacts[] | select(.expired==false) | .workflow_run.id] | max // empty')
+          if [ -z "$latest" ]; then echo "No artifacts to prune."; exit 0; fi
+          echo "Keeping artifacts from run $latest; deleting all others."
+          deleted=0; freed=0
+          mapfile -t rows < <(gh api --paginate "repos/$REPO/actions/artifacts" \
+            --jq ".artifacts[] | select(.expired==false and .workflow_run.id != $latest) | [.id, .size_in_bytes, .name] | @tsv")
+          for row in "${rows[@]}"; do
+            IFS=$'\t' read -r id size name <<< "$row"
+            echo "  delete #$id  $name  $((size/1048576))MB"
+            if gh api -X DELETE "repos/$REPO/actions/artifacts/$id"; then
+              deleted=$((deleted+1)); freed=$((freed+size))
+            else
+              echo "    (delete failed — skipping)"
+            fi
+          done
+          echo "::notice::Kept run $latest; deleted $deleted older artifact(s), freed $((freed/1048576))MB."

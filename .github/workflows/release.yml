@@ -1,0 +1,182 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:   # manual run: builds + packages installers, but does NOT
+                       # publish a GitHub Release (no tag). Use for testing the
+                       # full packaging path on demand.
+
+jobs:
+  # On a tag, create the (empty) GitHub Release first so the matrix package jobs
+  # can each attach their installer to it without racing to create it. Release
+  # ASSETS are stored separately from Actions ARTIFACTS, so this path is unaffected
+  # by the Actions artifact-storage quota.
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+
+  package:
+    needs: [create-release]
+    # Run even when create-release was skipped (workflow_dispatch has no tag).
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Two Linux legs: Debian/Ubuntu (.deb) and Fedora/RHEL (.rpm).
+          # The rpm leg installs rpmbuild first.
+          #
+          # The deb is built on 22.04, NOT ubuntu-latest, and the runner version
+          # is the package's compatibility floor in two ways:
+          #
+          #   1. jpackage derives Depends: from the build machine's packages. On
+          #      24.04 that yields `libasound2t64` — the 64-bit time_t transition
+          #      name, which does not exist before Ubuntu 24.04 / Debian 13, so
+          #      `apt install` refuses the package outright on 22.04. This is what
+          #      actually broke: 22.04 now produces plain `libasound2`, and 24.04
+          #      still resolves it, because its libasound2t64 declares
+          #      `Provides: libasound2 (= 1.2.11-1build2)` (checked against the
+          #      noble Packages index, not assumed).
+          #   2. Glibc, in principle: the launcher and the bundled JRE link
+          #      against the runner's glibc. Not the problem here — the highest
+          #      symbol either needs is GLIBC_2.14, against 2.35 on 22.04 — but it
+          #      is the reason to keep building on the OLDEST supported release
+          #      rather than pinning to whatever fixed today's symptom.
+          - os: ubuntu-22.04
+            artifact: linux-deb
+            artifact-pattern: "*.deb"
+            gradle-args: "-PlinuxPackage=deb"
+          - os: ubuntu-22.04
+            artifact: linux-rpm
+            artifact-pattern: "*.rpm"
+            gradle-args: "-PlinuxPackage=rpm"
+          - os: macos-latest       # ARM64 / Apple Silicon (M1+)
+            artifact: macos-arm64
+            artifact-pattern: "*.dmg"
+            gradle-args: ""
+          # Note: GitHub retired the standard Intel macOS runner (macos-13).
+          # The remaining Intel macOS labels (e.g. macos-15-intel, macos-15-large)
+          # require paid larger runners. For now the Intel .dmg is built locally
+          # on an Intel Mac and attached to the Release manually — see
+          # the release runbook.
+          - os: windows-latest
+            artifact: windows
+            artifact-pattern: "*.msi"
+            gradle-args: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout editor
+        uses: actions/checkout@v7
+        with:
+          path: editor
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      # v5, not v6 — v6's caching component is proprietary. See build.yml.
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Install rpm tooling (rpm leg only)
+        # jpackage builds .rpm via rpmbuild, which ubuntu-latest doesn't have
+        # by default. The .deb leg needs nothing extra.
+        if: matrix.artifact == 'linux-rpm'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      # Release PACKAGES installers; the test suite is gated separately by the
+      # Build & Test workflow (Linux). Re-running tests on every OS here would
+      # block releases on platform-specific test-portability issues (e.g.
+      # RefactorCommandsTest path assertions on macOS/Windows) that are not
+      # product defects. Skip tests; jpackage compiles only what it needs.
+      # matrix.gradle-args selects the Linux package format (deb/rpm); empty elsewhere.
+      - name: Build native installer
+        working-directory: editor
+        run: ./gradlew jpackage -x test ${{ matrix.gradle-args }}
+
+      - name: Tag macOS installer with arch
+        # jpackage produces the same filename on both macOS runners
+        # (DogsBay-XML-4.0.0.dmg), so the Release would overwrite one
+        # with the other. Suffix with the runner's arch to keep both.
+        if: runner.os == 'macOS'
+        shell: bash
+        working-directory: editor/build/jpackage
+        run: |
+          arch=$(uname -m)   # x86_64 on Intel, arm64 on Apple Silicon
+          for f in *.dmg; do
+            mv -v "$f" "${f%.dmg}-${arch}.dmg"
+          done
+
+      # Tag build: attach this installer straight to the Release (created above) —
+      # this uses Release-asset storage, NOT the Actions artifact quota.
+      - name: Attach installer to the Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: editor/build/jpackage/${{ matrix.artifact-pattern }}
+
+      # Manual (non-tag) runs have no Release to attach to — keep the installer as
+      # a short-lived run artifact for download/testing. Short retention so these
+      # don't pile up against the artifact-storage quota.
+      - name: Upload installer (manual dispatch only)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-${{ matrix.artifact }}
+          path: editor/build/jpackage/${{ matrix.artifact-pattern }}
+          retention-days: 3
+
+  # The uber-jar, for machines that will not have an installer: CI runners,
+  # containers, and anyone who wants the command line without a desktop
+  # package. One Linux build serves every platform, since the jar is portable
+  # and uses whatever JDK is already there.
+  #
+  #   java -cp dogsbay-xml-<version>.jar \
+  #     com.dogsbay.dogsbayaieditor.cli.DogsBayCli validate-deliverables .
+  uber-jar:
+    needs: [create-release]
+    if: ${{ !cancelled() }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout editor
+        uses: actions/checkout@v7
+        with:
+          path: editor
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Build the uber-jar
+        working-directory: editor
+        run: ./gradlew shadowJar -x test
+
+      - name: Attach the uber-jar to the Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: editor/build/libs/*-all.jar
+
+      - name: Upload the uber-jar (manual dispatch only)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: uber-jar
+          path: editor/build/libs/*-all.jar
+          retention-days: 3

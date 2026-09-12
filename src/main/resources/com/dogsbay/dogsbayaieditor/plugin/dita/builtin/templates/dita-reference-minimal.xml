@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd">
+<reference id="reference_id">
+    <title>Reference Title</title>
+
+    <shortdesc>Brief description of what this reference documents.</shortdesc>
+
+    <refbody>
+        <section>
+            <title>Syntax</title>
+            <codeblock>methodName(param1, param2)</codeblock>
+        </section>
+
+        <section>
+            <title>Parameters</title>
+            <table frame="all">
+                <tgroup cols="3">
+                    <colspec colname="c1" colnum="1" colwidth="1.5*"/>
+                    <colspec colname="c2" colnum="2" colwidth="1.0*"/>
+                    <colspec colname="c3" colnum="3" colwidth="2.0*"/>
+                    <thead>
+                        <row>
+                            <entry>Parameter</entry>
+                            <entry>Type</entry>
+                            <entry>Description</entry>
+                        </row>
+                    </thead>
+                    <tbody>
+                        <row>
+                            <entry><codeph>param1</codeph></entry>
+                            <entry><codeph>type</codeph></entry>
+                            <entry>Description of parameter 1</entry>
+                        </row>
+                        <row>
+                            <entry><codeph>param2</codeph></entry>
+                            <entry><codeph>type</codeph></entry>
+                            <entry>Description of parameter 2</entry>
+                        </row>
+                    </tbody>
+                </tgroup>
+            </table>
+        </section>
+
+        <section>
+            <title>Return Value</title>
+            <p>Description of what is returned.</p>
+        </section>
+
+        <example>
+            <title>Example</title>
+            <codeblock>// Example usage
+result = methodName(value1, value2);</codeblock>
+        </example>
+    </refbody>
+</reference>

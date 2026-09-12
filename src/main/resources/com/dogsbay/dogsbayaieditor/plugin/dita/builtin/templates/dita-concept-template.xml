@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE concept PUBLIC "-//OASIS//DTD DITA Concept//EN" "concept.dtd">
+<concept id="concept_id">
+    <title>Concept Title - Name of the Concept</title>
+
+    <shortdesc>Brief description of the concept (1-2 sentences).</shortdesc>
+
+    <prolog>
+        <author>Author Name</author>
+        <critdates>
+            <created date="2025-12-10"/>
+        </critdates>
+        <metadata>
+            <keywords>
+                <keyword>concept keyword</keyword>
+            </keywords>
+        </metadata>
+    </prolog>
+
+    <conbody>
+        <!-- Introduction paragraph -->
+        <p>Opening paragraph that introduces the concept and explains its importance or relevance.</p>
+
+        <!-- Main explanation with sections -->
+        <section>
+            <title>Key Aspect 1</title>
+            <p>Explanation of the first key aspect of this concept.</p>
+            <ul>
+                <li>Key point 1</li>
+                <li>Key point 2</li>
+                <li>Key point 3</li>
+            </ul>
+        </section>
+
+        <section>
+            <title>Key Aspect 2</title>
+            <p>Explanation of the second key aspect.</p>
+            <note type="important">Important conceptual information.</note>
+        </section>
+
+        <section>
+            <title>How It Works</title>
+            <p>Explanation of the underlying mechanism or principles.</p>
+            <fig>
+                <title>Diagram Title</title>
+                <image href="images/diagram.png" placement="break">
+                    <alt>Alternative text for diagram</alt>
+                </image>
+            </fig>
+        </section>
+
+        <section>
+            <title>Use Cases</title>
+            <p>When and where this concept is applied:</p>
+            <ul>
+                <li>Use case 1</li>
+                <li>Use case 2</li>
+                <li>Use case 3</li>
+            </ul>
+        </section>
+
+        <example>
+            <title>Example</title>
+            <p>Concrete example that illustrates the concept:</p>
+            <codeblock outputclass="language-xml">&lt;example&gt;
+    &lt;content&gt;Example illustration&lt;/content&gt;
+&lt;/example&gt;</codeblock>
+        </example>
+    </conbody>
+
+    <related-links>
+        <link href="related-task.xml" format="dita" type="task">
+            <linktext>Related Task</linktext>
+        </link>
+        <link href="related-reference.xml" format="dita" type="reference">
+            <linktext>Related Reference</linktext>
+        </link>
+    </related-links>
+</concept>

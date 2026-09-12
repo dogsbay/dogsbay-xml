@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<profile name="DITA 1.3" version="1.0">
+  <description>DITA 1.3 authoring profile with concept, task, reference, topic, map, bookmap, and glossary entry types.</description>
+
+  <types>
+    <type src="types/dita-concept.type"/>
+    <type src="types/dita-task.type"/>
+    <type src="types/dita-reference.type"/>
+    <type src="types/dita-topic.type"/>
+    <type src="types/dita-map.type"/>
+    <type src="types/dita-bookmap.type"/>
+    <type src="types/dita-glossentry.type"/>
+  </types>
+
+  <templates>
+    <template src="templates/dita-concept-minimal.xml"/>
+    <template src="templates/dita-concept-template.xml"/>
+    <template src="templates/dita-task-minimal.xml"/>
+    <template src="templates/dita-task-template.xml"/>
+    <template src="templates/dita-reference-minimal.xml"/>
+    <template src="templates/dita-reference-template.xml"/>
+  </templates>
+
+  <scenarios/>
+
+  <tool name="dita-ot" src="dita-ot"/>
+
+  <catalogs>
+    <catalog src="dtd/catalog.xml"/>
+  </catalogs>
+
+</profile>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+<map>
+  <title>Glossary Key Definitions</title>
+
+  <keydef keys="gl-sample-rate" href="topics/glossary/g-sample-rate.dita"/>
+  <keydef keys="gl-bit-depth" href="topics/glossary/g-bit-depth.dita"/>
+  <keydef keys="gl-clipping" href="topics/glossary/g-clipping.dita"/>
+  <keydef keys="gl-normalization" href="topics/glossary/g-normalization.dita"/>
+  <keydef keys="gl-compression" href="topics/glossary/g-compression.dita"/>
+  <keydef keys="gl-waveform" href="topics/glossary/g-waveform.dita"/>
+</map>

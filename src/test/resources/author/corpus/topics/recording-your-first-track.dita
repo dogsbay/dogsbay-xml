@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="recording-your-first-track">
+  <title>Recording Your First Track</title>
+  <taskbody>
+    <context>
+      <p>This task walks you through making your first audio recording in
+      <keyword keyref="product-name"/>. You will need a microphone connected
+      to your computer.
+      If you are unfamiliar with audio terminology, read
+      <xref href="what-is-digital-audio.dita"/> first.</p>
+      <note type="tip"><p>For best results, record in a quiet room and position
+      your microphone 6-12 inches from your mouth.</p></note>
+    </context>
+    <steps>
+      <step>
+        <cmd>Open <keyword keyref="product-name"/>.</cmd>
+        <info><p>If this is your first time, <keyword keyref="product-name"/>
+        will open with an
+        empty project window showing a gray waveform area.</p></info>
+      </step>
+      <step>
+        <cmd>Select your microphone from the recording device dropdown in
+        the <uicontrol>Device Toolbar</uicontrol>.</cmd>
+        <info><p>The <uicontrol>Device Toolbar</uicontrol> is near the top of
+        the window. The recording device dropdown has a microphone icon next
+        to it.</p></info>
+      </step>
+      <step>
+        <cmd>Click the <uicontrol>Record</uicontrol> button to start
+        recording.</cmd>
+        <info>
+          <p>You will see a blue waveform appear as <keyword keyref="product-name"/> captures audio
+          from your microphone.</p>
+          <note type="warning"><p>If you see a flat line instead of a waveform,
+          your microphone may not be selected correctly. Click
+          <uicontrol>Stop</uicontrol> and check your recording device
+          setting.</p></note>
+        </info>
+      </step>
+      <step>
+        <cmd>Speak into your microphone or play the audio you want to
+        capture.</cmd>
+      </step>
+      <step>
+        <cmd>Click the <uicontrol>Stop</uicontrol> button when you are
+        finished recording.</cmd>
+      </step>
+      <step>
+        <cmd>Click the <uicontrol>Play</uicontrol> button to listen to your
+        recording.</cmd>
+      </step>
+      <step conref="../shared/common-steps.dita#common-steps/save-project">
+        <cmd/>
+      </step>
+    </steps>
+    <result>
+      <p>You now have a recorded audio track in your <keyword keyref="product-name"/> project. The
+      waveform display shows the shape of your recorded audio. Louder
+      sounds appear as taller waves.</p>
+    </result>
+  </taskbody>
+  <related-links>
+    <link href="what-is-digital-audio.dita"/>
+    <link href="exporting-audio.dita"/>
+    <link href="supported-audio-formats.dita"/>
+  </related-links>
+</task>

@@ -1,0 +1,79 @@
+/*
+ * Copyright (C) 2002-2026 DogsBay Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.dogsbay.dogsbayaieditor.project.actions;
+
+import java.awt.event.ActionEvent;
+import java.io.File;
+
+import javax.swing.AbstractAction;
+
+import com.dogsbay.dogsbayaieditor.DogsBayAIEditor;
+import com.dogsbay.dogsbayaieditor.FileUtilities;
+import com.dogsbay.dogsbayaieditor.project.Project;
+import com.l2fprod.common.swing.JDirectoryChooser;
+
+/**
+ * An action that can be used to add a directory to a project or 
+ * folder.
+ *
+ * @version	$Revision: 1.3 $, $Date: 2005/09/05 09:08:29 $
+ * @author Dogsbay
+ */
+public class AddDirectoryContentsAction extends AbstractAction {
+ 	private static final boolean DEBUG = false;
+
+ 	private Project project = null;
+ 	private DogsBayAIEditor parent = null;
+	
+ 	/**
+	 * The constructor for the add action.
+	 *
+	 * @param editor the editor to copy information from.
+	 */
+ 	public AddDirectoryContentsAction( DogsBayAIEditor parent, Project project) {
+ 		super( "Add Directory Contents ...");
+ 		
+ 		this.parent = parent;
+ 		this.project = project;
+
+		putValue( MNEMONIC_KEY, Integer.valueOf( 'C'));
+//		putValue( ACCELERATOR_KEY, KeyStroke.getKeyStroke( KeyEvent.VK_ENTER, 0, false));
+//		putValue( SMALL_ICON, DogsBayImageLoader.get().getImage( "com/dogsbay/dogsbayaieditor/icons/Copy16.gif"));
+		putValue( SHORT_DESCRIPTION, "Add a Directory");
+		
+		setEnabled( false);
+ 	}
+ 	
+	/**
+	 * The implementation of the copy action.
+	 *
+	 * @param e the action event.
+	 */
+ 	public void actionPerformed( ActionEvent e) {
+		JDirectoryChooser chooser = FileUtilities.getDirectoryChooser();
+		
+	 	int value = chooser.showOpenDialog( parent);
+		
+	 	if ( value == JDirectoryChooser.APPROVE_OPTION) {
+		 	File file = chooser.getSelectedFile();
+		 	boolean isStartup = false;
+			project.addDirectoryContents( file, isStartup);
+	 	}
+ 	}
+}

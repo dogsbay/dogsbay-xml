@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns="http://example.com/test">
+    <title>Test Document</title>
+    <section id="s1">
+        <para>First paragraph.</para>
+    </section>
+    <section id="s2">
+        <para>Second paragraph.</para>
+    </section>
+</root>

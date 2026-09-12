@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE glossentry PUBLIC "-//OASIS//DTD DITA Glossary Entry//EN" "glossentry.dtd">
+<glossentry id="gl-normalization">
+  <glossterm>Normalization</glossterm>
+  <glossdef>The process of adjusting the overall level of an audio recording
+  so that the loudest peak reaches a specified target level. Normalization
+  does not change the dynamic range — it scales the entire signal
+  uniformly.</glossdef>
+</glossentry>

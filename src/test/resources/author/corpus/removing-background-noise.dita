@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="removing-background-noise">
+  <title>Removing Background Noise</title>
+  <taskbody>
+    <context>
+      <p>Background noise — such as hum from electronics, hiss from a
+      microphone, or fan noise — can degrade the quality of your recordings.
+      <keyword keyref="product-name"/> includes a Noise Reduction effect
+      that can dramatically improve audio clarity.</p>
+      <note conref="../shared/common-notes.dita#common-notes/backup-warning"
+            type="warning"><p/></note>
+      <note type="tip" audience="podcaster"><p>For podcast recordings, apply
+      noise reduction before compression and equalization. The order of
+      effects matters: clean the audio first, then shape its dynamics and
+      tone.</p></note>
+    </context>
+    <steps>
+      <step>
+        <cmd>Identify a section of audio that contains only the background
+        noise (no speech or desired audio).</cmd>
+        <info><p>Look for a quiet gap at the beginning or end of your
+        recording. You need at least half a second of noise-only audio.</p></info>
+      </step>
+      <step conref="../shared/common-steps.dita#common-steps/select-region">
+        <cmd/>
+      </step>
+      <step>
+        <cmd>Choose
+          <menucascade>
+            <uicontrol>Effect</uicontrol>
+            <uicontrol>Noise Reduction</uicontrol>
+          </menucascade>.
+        </cmd>
+      </step>
+      <step>
+        <cmd>Click <uicontrol>Get Noise Profile</uicontrol>.</cmd>
+        <info><p>This captures the characteristics of the background noise.
+        The dialog will close automatically.</p></info>
+      </step>
+      <step>
+        <cmd>Select the entire track by pressing
+        <uicontrol>Ctrl+A</uicontrol> (Windows/Linux) or
+        <uicontrol>Cmd+A</uicontrol> (macOS).</cmd>
+      </step>
+      <step>
+        <cmd>Choose
+          <menucascade>
+            <uicontrol>Effect</uicontrol>
+            <uicontrol>Noise Reduction</uicontrol>
+          </menucascade> again.</cmd>
+      </step>
+      <step>
+        <cmd>Adjust the settings and click <uicontrol>OK</uicontrol>.</cmd>
+        <info>
+          <p>Recommended starting settings:</p>
+          <ul>
+            <li>Noise reduction: 12 dB</li>
+            <li>Sensitivity: 6</li>
+            <li>Frequency smoothing: 3</li>
+          </ul>
+          <note type="warning"><p>Excessive noise reduction can make voices
+          sound metallic or underwater. Start with moderate settings and
+          increase gradually. Use <uicontrol>Preview</uicontrol> to listen
+          before applying.</p></note>
+        </info>
+      </step>
+      <step conref="../shared/common-steps.dita#common-steps/save-project">
+        <cmd/>
+      </step>
+    </steps>
+    <result>
+      <p>The background noise has been reduced across your entire track.
+      Play back the audio to verify the result sounds natural.</p>
+    </result>
+  </taskbody>
+</task>

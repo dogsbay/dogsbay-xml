@@ -1,0 +1,13 @@
+com.dogsbay.dogsbayaieditor.plugin.inspector.DocumentInspectorPlugin
+com.dogsbay.dogsbayaieditor.plugin.outline.OutlinePlugin
+com.dogsbay.dogsbayaieditor.plugin.search.SearchPlugin
+com.dogsbay.dogsbayaieditor.plugin.git.GitPlugin
+com.dogsbay.dogsbayaieditor.plugin.dita.DitaPlugin
+com.dogsbay.dogsbayaieditor.plugin.xpath.XPathQueryPlugin
+com.dogsbay.dogsbayaieditor.plugin.whereused.WhereUsedPlugin
+com.dogsbay.dogsbayaieditor.plugin.bookmarks.BookmarksPlugin
+com.dogsbay.dogsbayaieditor.plugin.json.JsonPlugin
+com.dogsbay.dogsbayaieditor.plugin.yaml.YamlPlugin
+com.dogsbay.dogsbayaieditor.plugin.agent.AgentPlugin
+com.dogsbay.dogsbayaieditor.plugin.agent.AiActionsPlugin
+com.dogsbay.dogsbayaieditor.plugin.proposals.ProposalsPlugin

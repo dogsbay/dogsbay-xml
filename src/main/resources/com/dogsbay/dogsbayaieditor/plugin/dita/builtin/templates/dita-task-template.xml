@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="task_template">
+    <title>Task Title - Describes What to Accomplish</title>
+
+    <shortdesc>Brief description of the task (1-2 sentences). This appears in search results and topic previews.</shortdesc>
+
+    <prolog>
+        <author>Author Name</author>
+        <critdates>
+            <created date="2025-12-10"/>
+            <revised modified="2025-12-10"/>
+        </critdates>
+        <metadata>
+            <keywords>
+                <keyword>keyword1</keyword>
+                <keyword>keyword2</keyword>
+            </keywords>
+        </metadata>
+    </prolog>
+
+    <taskbody>
+        <!-- PREREQ: What the user needs before starting -->
+        <prereq>
+            <p>Before you begin, ensure you have:</p>
+            <ul>
+                <li>Prerequisite item 1</li>
+                <li>Prerequisite item 2</li>
+                <li>Required permissions or access</li>
+            </ul>
+        </prereq>
+
+        <!-- CONTEXT: Background information about the task -->
+        <context>
+            <p>Provide context about when and why to perform this task. Explain the scenario or use case.</p>
+            <p>You can include multiple paragraphs to provide sufficient background.</p>
+        </context>
+
+        <!-- STEPS: The main procedural content -->
+        <steps>
+            <step>
+                <cmd>First step command - what the user should do</cmd>
+                <info>Additional information about this step (optional)</info>
+                <stepxmp>
+                    <p>Example showing how to complete this step</p>
+                </stepxmp>
+                <stepresult>What happens after completing this step (optional)</stepresult>
+            </step>
+
+            <step>
+                <cmd>Second step command</cmd>
+                <substeps>
+                    <substep>
+                        <cmd>Substep 1</cmd>
+                    </substep>
+                    <substep>
+                        <cmd>Substep 2</cmd>
+                    </substep>
+                </substeps>
+            </step>
+
+            <step>
+                <cmd>Step with choices</cmd>
+                <choices>
+                    <choice>Option A: Description of first choice</choice>
+                    <choice>Option B: Description of second choice</choice>
+                    <choice>Option C: Description of third choice</choice>
+                </choices>
+            </step>
+
+            <step>
+                <cmd>Step with code example</cmd>
+                <info>
+                    <codeblock outputclass="language-java">public class Example {
+    public static void main(String[] args) {
+        System.out.println("Example code");
+    }
+}</codeblock>
+                </info>
+            </step>
+
+            <step>
+                <cmd>Step with command-line example</cmd>
+                <info>
+                    <codeblock outputclass="language-bash">mvn clean package</codeblock>
+                </info>
+            </step>
+
+            <step>
+                <cmd>Step with a note or warning</cmd>
+                <info>
+                    <note type="important">Important information the user should know</note>
+                    <note type="warning">Warning about potential issues</note>
+                    <note type="tip">Helpful tip for completing this step</note>
+                </info>
+            </step>
+
+            <step>
+                <cmd>Step with conditional text</cmd>
+                <info>
+                    <p>If you are using Windows, run: <codeph>command.bat</codeph></p>
+                    <p>If you are using Linux/Mac, run: <codeph>command.sh</codeph></p>
+                </info>
+            </step>
+
+            <step>
+                <cmd>Final step command</cmd>
+                <tutorialinfo>Tutorial information that provides additional guidance</tutorialinfo>
+            </step>
+        </steps>
+
+        <!-- RESULT: What the user should see or expect after completing all steps -->
+        <result>
+            <p>After completing these steps, you should see:</p>
+            <ul>
+                <li>Expected outcome 1</li>
+                <li>Expected outcome 2</li>
+            </ul>
+            <p>The system displays a confirmation message.</p>
+        </result>
+
+        <!-- EXAMPLE: Complete example showing the task in action -->
+        <example>
+            <title>Example: Specific Use Case</title>
+            <p>This example shows how to complete the task for a specific scenario:</p>
+            <codeblock outputclass="language-xml">&lt;example-element&gt;
+    &lt;content&gt;Example content&lt;/content&gt;
+&lt;/example-element&gt;</codeblock>
+        </example>
+
+        <!-- POSTREQ: What to do after completing the task -->
+        <postreq>
+            <p>After completing this task:</p>
+            <ul>
+                <li>Verify the results</li>
+                <li>Consider the next steps</li>
+                <li>See related tasks: <xref href="related-task.xml"/></li>
+            </ul>
+        </postreq>
+    </taskbody>
+
+    <!-- RELATED LINKS: Links to related content -->
+    <related-links>
+        <link href="related-concept.xml" format="dita" type="concept">
+            <linktext>Related Concept Topic</linktext>
+        </link>
+        <link href="related-reference.xml" format="dita" type="reference">
+            <linktext>Related Reference Topic</linktext>
+        </link>
+        <link href="https://example.com/external-resource" format="html" scope="external">
+            <linktext>External Resource</linktext>
+        </link>
+    </related-links>
+</task>

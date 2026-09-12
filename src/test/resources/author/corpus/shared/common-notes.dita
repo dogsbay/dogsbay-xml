@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="common-notes">
+  <title>Common Notes</title>
+  <body>
+    <note id="backup-warning" type="warning"><p>This operation modifies your
+    audio data. Make sure you have saved your project before proceeding. You
+    can undo changes with <uicontrol>Ctrl+Z</uicontrol> (Windows/Linux) or
+    <uicontrol>Cmd+Z</uicontrol> (macOS).</p></note>
+  </body>
+</topic>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns:root xmlns:ns="http://example.com/namespace">
+    <ns:element>Namespaced content</ns:element>
+</ns:root>

@@ -1,0 +1,323 @@
+/*
+ * Copyright (C) 2002-2026 DogsBay Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.dogsbay.dogsbayaieditor.grammar;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
+
+import org.bounce.DefaultFileFilter;
+import org.bounce.FormConstraints;
+import org.bounce.FormLayout;
+
+import com.dogsbay.xml.XMLGrammar;
+import com.dogsbay.dogsbayaieditor.FileUtilities;
+import com.dogsbay.dogsbayaieditor.MessageHandler;
+import com.dogsbay.dogsbayaieditor.URLUtilities;
+import com.dogsbay.dogsbayaieditor.DogsBayDialog;
+
+/**
+ * The namespace properties dialog.
+ *
+ * @version	$Revision: 1.5 $, $Date: 2004/11/04 19:21:50 $
+ * @author Dogsbay
+ */
+public class TagCompletionPropertiesDialog extends DogsBayDialog {
+	private static final Dimension SIZE 					= new Dimension( 400, 120);
+	private static final FormConstraints LEFT_ALIGN_RIGHT	= new FormConstraints( FormConstraints.LEFT, FormConstraints.RIGHT);
+
+	private TagCompletionProperties properties	= null;
+
+	//private boolean cancelled = false;
+	
+	//private JButton cancelButton	= null;
+	//private JButton okButton		= null;
+	
+	private DefaultFileFilter dtdFilter = null;
+	private DefaultFileFilter rngFilter = null;
+	private DefaultFileFilter rncFilter = null;
+
+	private JFileChooser tagCompletionChooser = null;
+
+	// The components that contain the values
+	private JTextField tagCompletionLocationField	= null;
+	private JButton tagCompletionLocationButton		= null;
+
+	private JRadioButton dtdTagCompletionCheck	= null;
+	private JRadioButton rngTagCompletionCheck	= null;
+	private JRadioButton rncTagCompletionCheck	= null;
+
+	/**
+	 * The dialog that displays the preferences for the editor.
+	 *
+	 * @param frame the parent frame.
+	 */
+	public TagCompletionPropertiesDialog( JFrame parent) {
+		super( parent, true);
+		
+		setResizable( false);
+		setTitle( "Tag Completion Properties");
+		setDialogDescription( "Specify a Tag Completion Schema");
+		
+		JPanel main = new JPanel( new BorderLayout());
+		main.setBorder( new EmptyBorder( 5, 5, 5, 5));
+		
+		// GENERAL
+		JPanel generalPanel = new JPanel( new FormLayout( 10, 2));
+		generalPanel.setBorder( new EmptyBorder( 5, 5, 15, 5));
+	
+		// prefix
+		ButtonGroup group = new ButtonGroup();
+
+		dtdTagCompletionCheck = new JRadioButton( "DTD");
+		dtdTagCompletionCheck.setFont( dtdTagCompletionCheck.getFont().deriveFont( Font.PLAIN));
+		group.add( dtdTagCompletionCheck);
+
+		rngTagCompletionCheck = new JRadioButton( "RNG");
+		rngTagCompletionCheck.setFont( rngTagCompletionCheck.getFont().deriveFont( Font.PLAIN));
+		group.add( rngTagCompletionCheck);
+
+		rncTagCompletionCheck = new JRadioButton( "RNC");
+		rncTagCompletionCheck.setFont( rncTagCompletionCheck.getFont().deriveFont( Font.PLAIN));
+		group.add( rncTagCompletionCheck);
+
+		JPanel tagCompletionGrammarPanel = new JPanel( new FlowLayout( FlowLayout.LEFT, 5, 0));
+		tagCompletionGrammarPanel.add( dtdTagCompletionCheck);
+		tagCompletionGrammarPanel.add( rngTagCompletionCheck);
+		tagCompletionGrammarPanel.add( rncTagCompletionCheck);
+
+		generalPanel.add( new JLabel( "Grammar:"), FormLayout.LEFT);
+		generalPanel.add( tagCompletionGrammarPanel, FormLayout.RIGHT_FILL);
+		
+		tagCompletionLocationField = new JTextField();
+
+		tagCompletionLocationButton = new JButton( "...");
+		tagCompletionLocationButton.setMargin( new Insets( 0, 10, 0, 10));
+		tagCompletionLocationButton.setPreferredSize( new Dimension( tagCompletionLocationButton.getPreferredSize().width, tagCompletionLocationField.getPreferredSize().height));
+		tagCompletionLocationButton.addActionListener( new ActionListener() {
+			public void actionPerformed( ActionEvent e) {
+				tagCompletionLocationButtonPressed();
+			}
+		});
+		
+		JPanel tempPanel = new JPanel( new BorderLayout());
+		tempPanel.add( tagCompletionLocationField, BorderLayout.CENTER);
+		tempPanel.add( tagCompletionLocationButton, BorderLayout.EAST);
+
+		generalPanel.add( new JLabel( "Location:"), FormLayout.LEFT);
+		generalPanel.add( tempPanel, FormLayout.RIGHT_FILL);
+		
+		/*cancelButton = new JButton( "Cancel");
+		cancelButton.setMnemonic( 'C');
+		cancelButton.setFont( cancelButton.getFont().deriveFont( Font.PLAIN));
+		cancelButton.addActionListener( new ActionListener() {
+			public void actionPerformed( ActionEvent e) {
+				cancelButtonPressed();
+			}
+		});
+
+		okButton = new JButton( "OK");
+		okButton.addActionListener( new ActionListener() {
+			public void actionPerformed( ActionEvent e) {
+				okButtonPressed();
+			}
+		});
+
+		getRootPane().setDefaultButton( okButton);
+
+		JPanel buttonPanel = new JPanel( new FlowLayout( FlowLayout.CENTER, 0, 0));
+		buttonPanel.setBorder( new EmptyBorder( 10, 0, 3, 0));
+		buttonPanel.add( okButton);
+		buttonPanel.add( cancelButton);*/
+
+		main.add( generalPanel, BorderLayout.CENTER);
+		/*main.add( buttonPanel, BorderLayout.SOUTH);
+
+		addWindowListener( new WindowAdapter() {
+			public void windowClosing( WindowEvent e) {
+				cancelled = true;
+				hide();
+			}
+		});
+*/
+		setContentPane( main);
+		
+		setDefaultCloseOperation( HIDE_ON_CLOSE);
+		
+		pack();
+		setSize( new Dimension( Math.max( SIZE.width, getSize().width), getSize().height));
+
+		setLocationRelativeTo( parent);
+	}
+	
+	protected void okButtonPressed() {
+		String location = tagCompletionLocationField.getText();
+		
+		if ( checkLocation( location)) {
+			
+			properties.setLocation( location);
+			properties.setType( getCompletionType());
+	
+			super.okButtonPressed();
+		}
+	}
+
+	public void show( TagCompletionProperties properties) {
+		this.properties = properties;
+		
+		setText( tagCompletionLocationField, properties.getLocation());
+		setCompletionType( properties.getType());
+		
+		super.setVisible(true);
+	}
+	
+	private int getCompletionType() {
+		int result = XMLGrammar.TYPE_DTD;
+
+		if ( rngTagCompletionCheck.isSelected()) {
+			result = XMLGrammar.TYPE_RNG;
+		} else if ( rncTagCompletionCheck.isSelected()) {
+			result = XMLGrammar.TYPE_RNC;
+		}
+		
+		return result;
+	}
+
+	private void setCompletionType( int type) {
+		if ( type == XMLGrammar.TYPE_RNG) {
+			rngTagCompletionCheck.setSelected( true);
+		} else if ( type == XMLGrammar.TYPE_RNC) {
+			rncTagCompletionCheck.setSelected( true);
+		} else {
+			dtdTagCompletionCheck.setSelected( true);
+		}
+	}
+
+	private void tagCompletionLocationButtonPressed() {
+		JFileChooser chooser = getTagCompletionFileChooser();
+		
+		int value = chooser.showOpenDialog( getParent());
+	
+		if ( value == JFileChooser.APPROVE_OPTION) {
+			File file = chooser.getSelectedFile();
+			URL url = null;
+	
+			try {
+				url = com.dogsbay.xml.DogsBayURLUtilities.getURLFromFile(file);
+			} catch ( MalformedURLException x) {
+				x.printStackTrace(); // should never happen
+			}
+	
+			setText( tagCompletionLocationField, url.toString());
+		}
+	}	
+
+	private JFileChooser getTagCompletionFileChooser() {
+		if ( tagCompletionChooser == null) {
+			tagCompletionChooser = FileUtilities.createFileChooser();
+
+			if ( dtdFilter == null) {
+				dtdFilter = new DefaultFileFilter( "dtd", "Document Type Definition");
+			}
+			
+			if ( rngFilter == null) {
+				rngFilter = new DefaultFileFilter( "rng", "RelaxNG");
+			}
+
+			if ( rncFilter == null) {
+				rncFilter = new DefaultFileFilter( "rnc", "RelaxNG Compact Format");
+			}
+
+			tagCompletionChooser.addChoosableFileFilter( dtdFilter);
+			tagCompletionChooser.addChoosableFileFilter( rngFilter);
+			tagCompletionChooser.addChoosableFileFilter( rncFilter);
+		} 
+		
+		if ( dtdTagCompletionCheck.isSelected()) {
+			tagCompletionChooser.setFileFilter( dtdFilter);
+		} else if ( rngTagCompletionCheck.isSelected()) {
+			tagCompletionChooser.setFileFilter( rngFilter);
+		} else if ( rncTagCompletionCheck.isSelected()) {
+			tagCompletionChooser.setFileFilter( rncFilter);
+		}
+
+		File file = URLUtilities.toFile( tagCompletionLocationField.getText());
+		
+		if ( file != null) {
+			tagCompletionChooser.setCurrentDirectory( file);
+		}
+		
+		tagCompletionChooser.rescanCurrentDirectory();
+		
+		return tagCompletionChooser;
+	}
+
+	protected void cancelButtonPressed() {
+		super.cancelButtonPressed();
+	}
+
+	/**
+	 * When the dialog is cancelled and no selection has been made, 
+	 * this method returns true.
+	 *
+	 * @return true when the dialog has been cancelled.
+	 */
+	public boolean isCancelled() {
+		return cancelled;
+	}
+	
+	private void setText( JTextField field, String text) {
+		field.setText( text);
+		field.setCaretPosition( 0);
+	}
+	
+	protected boolean isEmpty( String string) {
+		if ( string != null && string.trim().length() > 0) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	private boolean checkLocation( String value) {
+		if ( isEmpty( value)) {
+			MessageHandler.showMessage( "Please specify a Tag Completion Grammar Location.");
+			return false;
+		}
+		
+		return true;
+	}
+} 
