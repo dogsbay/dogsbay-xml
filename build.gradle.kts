@@ -186,7 +186,7 @@ dependencies {
     // Terminal Emulation
     implementation("org.jetbrains.jediterm:jediterm-ui:3.48")
     implementation("org.jetbrains.jediterm:jediterm-core:3.48")
-    implementation("org.jetbrains.pty4j:pty4j:0.12.13")
+    implementation("org.jetbrains.pty4j:pty4j:0.13.12")
 
     // Flexmark Markdown
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
