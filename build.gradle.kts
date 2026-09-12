@@ -156,9 +156,9 @@ dependencies {
     implementation("commons-io:commons-io:2.19.0")
 
     // Apache Ant (for DITA-OT)
-    implementation("org.apache.ant:ant:1.10.15")
-    implementation("org.apache.ant:ant-launcher:1.10.15")
-    implementation("org.apache.ant:ant-apache-resolver:1.10.15")
+    implementation("org.apache.ant:ant:1.10.18")
+    implementation("org.apache.ant:ant-launcher:1.10.18")
+    implementation("org.apache.ant:ant-apache-resolver:1.10.18")
 
     // Guava
     implementation("com.google.guava:guava:33.4.8-jre")
