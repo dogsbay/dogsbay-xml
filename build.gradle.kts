@@ -184,8 +184,8 @@ dependencies {
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
 
     // Terminal Emulation
-    implementation("org.jetbrains.jediterm:jediterm-ui:3.48")
-    implementation("org.jetbrains.jediterm:jediterm-core:3.48")
+    implementation("org.jetbrains.jediterm:jediterm-ui:3.76")
+    implementation("org.jetbrains.jediterm:jediterm-core:3.76")
     implementation("org.jetbrains.pty4j:pty4j:0.12.13")
 
     // Flexmark Markdown
