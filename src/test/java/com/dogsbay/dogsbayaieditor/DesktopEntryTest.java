@@ -64,14 +64,14 @@ class DesktopEntryTest {
 
         // jpackage looks an override up by launcher name; a different file name
         // is silently ignored and the default template wins.
-        assertThat(build).contains("imageName = \"DogsBay-XML\"");
-        assertThat(build).contains("resolve(\"DogsBay-XML.desktop\")");
+        assertThat(build).contains("imageName = \"DogsBay-XML-Editor\"");
+        assertThat(build).contains("resolve(\"DogsBay-XML-Editor.desktop\")");
     }
 
     @Test
     @DisplayName("the generated entry carries the icon and the WM class")
     void theGeneratedEntryIsComplete() throws Exception {
-        Path generated = Path.of("build/jpackage-resources/DogsBay-XML.desktop");
+        Path generated = Path.of("build/jpackage-resources/DogsBay-XML-Editor.desktop");
         if (!Files.exists(generated)) {
             return;   // not generated in this build; the source assertions above stand
         }
@@ -80,5 +80,27 @@ class DesktopEntryTest {
         assertThat(entry).contains("Icon=APPLICATION_ICON");
         assertThat(entry).contains("StartupWMClass=" + expectedWmClass());
         assertThat(entry).doesNotContain("NoDisplay=true");   // the GUI belongs on the menu
+    }
+
+    @Test
+    @DisplayName("the app launcher cannot collide with the CLI launcher")
+    void theTwoLaunchersDifferByMoreThanCase() throws Exception {
+        String build = Files.readString(ENTRY);
+        String image = between(build, "imageName = \"", "\"");
+        String cli = between(build, "\"--add-launcher\", \"", "=");
+
+        // They shared a name but for its case, so a case-insensitive filesystem
+        // saw one path: jpackage wrote the app launcher and then failed creating
+        // the CLI one. Linux builds fine and macOS and Windows do not.
+        assertThat(image.toLowerCase(java.util.Locale.ROOT))
+                .as("app image vs CLI launcher, ignoring case")
+                .isNotEqualTo(cli.toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private static String between(String text, String open, String close) {
+        int from = text.indexOf(open);
+        assertThat(from).as("found " + open).isNotNegative();
+        from += open.length();
+        return text.substring(from, text.indexOf(close, from));
     }
 }

@@ -812,7 +812,7 @@ val writeDesktopEntries = tasks.register("writeDesktopEntries") {
         dir.mkdirs()
         dir.resolve("dogsbay-xml.desktop").writeText(cliEntry)
         // Named after the image: jpackage looks the override up by launcher name.
-        dir.resolve("DogsBay-XML.desktop").writeText(guiEntry)
+        dir.resolve("DogsBay-XML-Editor.desktop").writeText(guiEntry)
     }
 }
 
@@ -855,8 +855,13 @@ runtime {
         // the OS-level version while keeping the full version in the jar
         // manifest (read by Identity for the About dialog).
         appVersion = project.version.toString().substringBefore("-")
-        imageName = "DogsBay-XML"
-        installerName = "DogsBay-XML"
+        // Not "DogsBay-XML": the CLI launcher added below is "dogsbay-xml",
+        // and the two differ only in case. Linux is case-sensitive so both
+        // coexist, but macOS and Windows treat them as one path and jpackage
+        // fails creating the second — the app image built on Linux and nowhere
+        // else. Lowercased this is "dogsbay-xml-editor", which cannot collide.
+        imageName = "DogsBay-XML-Editor"
+        installerName = "DogsBay-XML-Editor"
 
         val commonOpts = listOf("--vendor", "DogsBay Ltd.")
 
