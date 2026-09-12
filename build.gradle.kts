@@ -806,6 +806,7 @@ val writeDesktopEntries = tasks.register("writeDesktopEntries") {
     """.trimIndent() + "\n"
     inputs.property("cliEntry", cliEntry)
     inputs.property("guiEntry", guiEntry)
+    inputs.file("src/main/packaging/icons/dogsbay-paw.png").withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.dir(out)
     doLast {
         val dir = out.get().asFile
@@ -813,6 +814,15 @@ val writeDesktopEntries = tasks.register("writeDesktopEntries") {
         dir.resolve("dogsbay-xml.desktop").writeText(cliEntry)
         // Named after the image: jpackage looks the override up by launcher name.
         dir.resolve("DogsBay-XML-Editor.desktop").writeText(guiEntry)
+        // The icon as well, under the same name. --icon dresses the app image,
+        // but the Linux packaging step re-derives lib/<name>.png from the
+        // resource directory and falls back to the stock Java icon when it is
+        // not there — so the image carried the paw and the .deb and .rpm
+        // shipped Duke.
+        val icon = file("src/main/packaging/icons/dogsbay-paw.png")
+        if (icon.isFile) {
+            icon.copyTo(dir.resolve("DogsBay-XML-Editor.png"), overwrite = true)
+        }
     }
 }
 
