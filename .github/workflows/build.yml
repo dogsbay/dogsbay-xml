@@ -36,7 +36,7 @@ jobs:
       # enable caching here, v6 would pull that component in. v5 is the last fully
       # MIT-licensed line and already runs on Node 24. Revisit only as a conscious
       # licensing decision.
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 

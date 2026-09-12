@@ -86,7 +86,7 @@ jobs:
           java-version: 25
 
       # v5, not v6 — v6's caching component is proprietary. See build.yml.
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Install rpm tooling (rpm leg only)
         # jpackage builds .rpm via rpmbuild, which ubuntu-latest doesn't have
@@ -161,7 +161,7 @@ jobs:
           distribution: temurin
           java-version: 25
 
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Build the uber-jar
         working-directory: editor
