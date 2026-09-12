@@ -63,7 +63,12 @@ jobs:
 
       - name: Compile editor
         working-directory: editor
-        run: ./gradlew classes --console=plain
+        # syncLib as well as classes: bin/dogsbay-xml runs from build/classes
+        # with lib/* on its classpath, and only 16 of those jars are committed.
+        # syncLib copies the rest out of the Gradle cache. Without it every
+        # assertion died on NoClassDefFoundError: picocli/CommandLine, and the
+        # greps then reported the planted issues as missing.
+        run: ./gradlew syncLib classes --console=plain
 
       - name: Run DITA audits and assert planted issues
         shell: bash

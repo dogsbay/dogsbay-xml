@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.swing.SwingUtilities;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.dogsbay.xml.author.adapter.DitaBlockAdapter;
@@ -92,6 +93,9 @@ class StructuralEditingUiTest {
         return null;
     }
 
+    // The system clipboard needs a display, which a CI runner does not have:
+    // tagged so it runs under uiTest rather than failing the headless suite.
+    @Tag("ui")
     @Test
     void aBlockCopiesAsXmlAndPastesBackAfterTheAnchor() throws Exception {
         build();
@@ -114,6 +118,9 @@ class StructuralEditingUiTest {
                 .containsExactly("one", "one", "two");
     }
 
+    // The system clipboard needs a display, which a CI runner does not have:
+    // tagged so it runs under uiTest rather than failing the headless suite.
+    @Tag("ui")
     @Test
     void aRefusedCutLeavesTheClipboardAlone() throws Exception {
         build();
@@ -144,6 +151,9 @@ class StructuralEditingUiTest {
         }
     }
 
+    // The system clipboard needs a display, which a CI runner does not have:
+    // tagged so it runs under uiTest rather than failing the headless suite.
+    @Tag("ui")
     @Test
     void pastingMarkupThatFitsNowhereIsRefused() throws Exception {
         build();
