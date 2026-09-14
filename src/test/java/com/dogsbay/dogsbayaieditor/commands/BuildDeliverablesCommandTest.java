@@ -49,12 +49,23 @@ class BuildDeliverablesCommandTest {
     @Test
     void failsClearlyWhenDitaOtIsNotConfigured() throws Exception {
         writeProject();
-        assertThatThrownBy(() -> executor.execute(
-                new BuildDeliverablesCommand(dir.toString(), null, null, null)))
-            .isInstanceOf(CommandException.class)
-            .hasMessageContaining("DITA-OT")
-            .satisfies(e -> assertThat(((CommandException) e).getCode())
-                .isEqualTo(CommandException.ErrorCode.INVALID_ARGUMENT));
+        // The lookup finds an engine installed on this machine; point it at an empty frameworks folder.
+        String previous = System.getProperty(DitaOtHome.HOME_PROPERTY);
+        System.setProperty(DitaOtHome.HOME_PROPERTY, Files.createDirectories(dir.resolve("no-frameworks")).toString());
+        try {
+            assertThatThrownBy(() -> executor.execute(
+                    new BuildDeliverablesCommand(dir.toString(), null, null, null)))
+                .isInstanceOf(CommandException.class)
+                .hasMessageContaining("DITA-OT")
+                .satisfies(e -> assertThat(((CommandException) e).getCode())
+                    .isEqualTo(CommandException.ErrorCode.INVALID_ARGUMENT));
+        } finally {
+            if (previous == null) {
+                System.clearProperty(DitaOtHome.HOME_PROPERTY);
+            } else {
+                System.setProperty(DitaOtHome.HOME_PROPERTY, previous);
+            }
+        }
     }
 
     @Test

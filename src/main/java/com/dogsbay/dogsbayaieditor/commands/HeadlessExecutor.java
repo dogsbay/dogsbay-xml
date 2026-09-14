@@ -680,8 +680,10 @@ public class HeadlessExecutor implements CommandExecutor {
             catalogs.add(bundled);
         }
 
-        java.nio.file.Path otOverride = (cmd.ditaOtHome() != null && !cmd.ditaOtHome().isBlank())
-                ? java.nio.file.Path.of(cmd.ditaOtHome()) : null;
+        // The path given, else the one the editor would use: the project's local.xml path, the framework
+        // config.xml names, or the bundled DITA-OT, installed under ~/.dogsbay/frameworks.
+        java.nio.file.Path otOverride = DitaOtHome.resolve(root,
+                (cmd.ditaOtHome() != null && !cmd.ditaOtHome().isBlank()) ? java.nio.file.Path.of(cmd.ditaOtHome()) : null);
 
         com.dogsbay.dogsbayaieditor.ditaproject.ProjectContext ctx;
         try {
@@ -696,7 +698,7 @@ public class HeadlessExecutor implements CommandExecutor {
         if (otPath == null) {
             throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
                     "DITA-OT is not configured for this project. Import the DITA-OT "
-                    + "framework or set the engine path before deep validation.");
+                    + "framework in the editor, or pass the DITA-OT home (--dita-ot), before deep validation.");
         }
 
         List<com.dogsbay.dogsbayaieditor.ditaproject.Deliverable> targets;
@@ -807,8 +809,10 @@ public class HeadlessExecutor implements CommandExecutor {
         if (bundled != null) {
             catalogs.add(bundled);
         }
-        java.nio.file.Path otOverride = (cmd.ditaOtHome() != null && !cmd.ditaOtHome().isBlank())
-                ? java.nio.file.Path.of(cmd.ditaOtHome()) : null;
+        // The path given, else the one the editor would use: the project's local.xml path, the framework
+        // config.xml names, or the bundled DITA-OT, installed under ~/.dogsbay/frameworks.
+        java.nio.file.Path otOverride = DitaOtHome.resolve(root,
+                (cmd.ditaOtHome() != null && !cmd.ditaOtHome().isBlank()) ? java.nio.file.Path.of(cmd.ditaOtHome()) : null);
 
         com.dogsbay.dogsbayaieditor.ditaproject.ProjectContext ctx;
         try {
@@ -823,7 +827,7 @@ public class HeadlessExecutor implements CommandExecutor {
         if (otPath == null) {
             throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
                     "DITA-OT is not configured for this project. Import the DITA-OT "
-                    + "framework or set the engine path before building.");
+                    + "framework in the editor, or pass the DITA-OT home (--dita-ot), before building.");
         }
 
         List<com.dogsbay.dogsbayaieditor.ditaproject.Deliverable> targets;

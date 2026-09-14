@@ -88,8 +88,13 @@ public class EditorExecutor implements CommandExecutor {
             case SchematronProjectCommand c -> headless.execute(c);
             case SchematronCommand c -> headless.execute(c);
             case ValidateDeliverablesCommand c -> headless.execute(c);
-            case ValidateDeepCommand c -> headless.execute(c);
-            case BuildDeliverablesCommand c -> headless.execute(c);
+            // The editor knows its DITA-OT; an agent's command arrives without one.
+            case ValidateDeepCommand c -> headless.execute(blank(c.ditaOtHome())
+                    ? new ValidateDeepCommand(c.root(), c.deliverable(), c.map(), editorDitaOt(c.root())) : c);
+            case BuildDeliverablesCommand c -> headless.execute(blank(c.ditaOtHome())
+                    ? new BuildDeliverablesCommand(c.root(), c.outputBaseDir(), c.deliverable(), editorDitaOt(c.root()),
+                            c.deliverableNames())
+                    : c);
             case ValidateConditionsCommand c -> headless.execute(c);
             case ListSubjectsCommand c -> headless.execute(c);
             case MetadataAuditCommand c -> headless.execute(c);
@@ -199,6 +204,45 @@ public class EditorExecutor implements CommandExecutor {
             case SwitchSidebarCommand c -> executeOnEDT(() -> executeSwitchSidebar(c));
             case OpenDitaMapCommand c -> executeOnEDT(() -> executeOpenDitaMap(c));
         };
+    }
+
+    private static boolean blank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    /**
+     * The DITA-OT home the editor publishes with, when the command is for the project open in the
+     * editor and that home is an installation; otherwise null, and the headless lookup reads the
+     * command's own project. The editor's answer comes from the open folder and selected project,
+     * so for another project it would be the wrong engine, or a stale path. Asked on the EDT
+     * because it reads that state.
+     */
+    private String editorDitaOt(String root) {
+        if (blank(root)) {
+            return null;
+        }
+        try {
+            return executeOnEDT(() -> {
+                java.io.File open = editor.getFileExplorer() != null
+                        ? editor.getFileExplorer().getRootDirectory() : null;
+                if (open == null || !sameDirectory(open.toPath(), java.nio.file.Path.of(root))) {
+                    return null;
+                }
+                String path = editor.getDitaOtPath();
+                java.nio.file.Path home = DitaOtHome.safePath(path);
+                return DitaOtHome.isHome(home) ? path : null;
+            });
+        } catch (CommandException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static boolean sameDirectory(java.nio.file.Path a, java.nio.file.Path b) {
+        try {
+            return java.nio.file.Files.isSameFile(a, b);
+        } catch (java.io.IOException e) {
+            return a.toAbsolutePath().normalize().equals(b.toAbsolutePath().normalize());
+        }
     }
 
     // ── EDT marshaling ──────────────────────────────────────────────────
