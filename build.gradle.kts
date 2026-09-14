@@ -503,8 +503,10 @@ tasks.register("checkLib") {
     val libDir = file("lib")
     val resolved = configurations.named("runtimeClasspath")
     doLast {
+        // invariantSeparatorsPath: on Windows the path holds "\lib\", which a
+        // "/lib/" match misses, reporting every committed lib/ jar as a Maven one.
         val fromMaven = resolved.get().files
-            .filterNot { it.path.contains("/lib/") }
+            .filterNot { it.invariantSeparatorsPath.contains("/lib/") }
             .map { it.name }
             .toSet()
 
@@ -550,7 +552,7 @@ tasks.register("checkLib") {
 
 tasks.register<Copy>("syncLib") {
     description = "Copy Maven Central dependencies to lib/ for loader.properties"
-    from(configurations.runtimeClasspath.get().filter { !it.path.contains("/lib/") })
+    from(configurations.runtimeClasspath.get().filter { !it.invariantSeparatorsPath.contains("/lib/") })
     into("lib")
 
     // loader.properties is the legacy Loader's own classpath list (run.sh). It was
