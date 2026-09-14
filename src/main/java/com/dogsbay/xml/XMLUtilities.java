@@ -402,32 +402,34 @@ public class XMLUtilities {
 
 		String result = null;
 		
-		BufferedInputStream stream = new BufferedInputStream( URLUtilities.open( url));
+		// Closed on every path: an open handle stops Windows replacing the file,
+		// so the next save of this document failed with "access denied".
+		try (BufferedInputStream stream = new BufferedInputStream( URLUtilities.open( url))) {
+			Object[] objects = preParse( stream);
 
-		Object[] objects = preParse( stream);
-		
-		String encoding = (String)objects[1];
+			String encoding = (String)objects[1];
 
-		Reader reader = (BufferedReader)objects[0];
-		
-		decl.setEncoding( encoding);
-		
-		CharArrayWriter writer = new CharArrayWriter();
-		
-		int ch = reader.read();
+			try (Reader reader = (BufferedReader)objects[0]) {
+				decl.setEncoding( encoding);
 
-		while ( ch != -1) {
-			//if ( !Character.isDefined( (char)ch)) {
-			if ( !Character.isDefined( ch)) {
-				throw new IOException( "File contains illegal Characters");
+				CharArrayWriter writer = new CharArrayWriter();
+
+				int ch = reader.read();
+
+				while ( ch != -1) {
+					//if ( !Character.isDefined( (char)ch)) {
+					if ( !Character.isDefined( ch)) {
+						throw new IOException( "File contains illegal Characters");
+					}
+
+					writer.write( ch);
+
+					ch = reader.read();
+				}
+
+				return writer.toString();
 			}
-
-			writer.write( ch);
-			
-			ch = reader.read();
 		}
-		
-		return writer.toString();
 	}
 
 	public static synchronized XDocument parseRemote( URL url) throws IOException, SAXParseException {
@@ -1349,21 +1351,16 @@ public class XMLUtilities {
 	}
 
 	public static XMLReader replaceAmp( URL url) throws IOException, NotXMLException {
-		InputStream stream = URLUtilities.open( url);
-		Object[] objects = preParseXML( new BufferedInputStream( stream));
-		
-		BufferedReader reader = (BufferedReader)objects[0];
-		String encoding = (String)objects[1];
+		// replaceAmp reads the whole file into memory, so the handle can close
+		// before the result is used; left open, Windows refuses to replace the file.
+		try (InputStream stream = URLUtilities.open( url)) {
+			Object[] objects = preParseXML( new BufferedInputStream( stream));
 
-		XMLReader xmlReader = null;
-		
-//		try {
-			xmlReader = replaceAmp( reader, encoding);
-//		} catch (Exception e) {
-//		 	e.printStackTrace();
-//		}
-
-		return xmlReader;
+			try (BufferedReader reader = (BufferedReader)objects[0]) {
+				String encoding = (String)objects[1];
+				return replaceAmp( reader, encoding);
+			}
+		}
 	}
 
 	private static XMLReader replaceAmp( BufferedReader reader) throws IOException, NotXMLException {
