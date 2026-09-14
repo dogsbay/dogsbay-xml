@@ -8,7 +8,7 @@
 <!--@kit:graph-->
 <style>
   .graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; }
-  .graph-stage { height: 70vh; min-height: 360px; }
+  .graph-stage { height: 74vh; min-height: 420px; }
   .detail { overflow: auto; max-height: 70vh; }
   .detail ul { list-style: none; margin: 4px 0 12px; padding: 0; }
   .detail li { padding: 3px 0; border-bottom: 1px solid var(--border); }
@@ -20,6 +20,9 @@
   .legend svg { width: 34px; height: 18px; overflow: visible; }
   .kind-toggles { display: flex; flex-wrap: wrap; gap: 4px; }
   .kind-toggles button { font-size: .85em; padding: 2px 8px; }
+  .zoom-controls { display: inline-flex; gap: 2px; }
+  .zoom-controls button { min-width: 2.2em; }
+  .graph-hint { margin: 4px 0 8px; font-size: .88em; }
 
   /* Edge kinds: colour always paired with a dash pattern and a text label in the legend. */
   .report-graph .ek-mapref, .legend .ek-mapref { stroke: #4a5bd4; }
@@ -87,8 +90,14 @@
       <div class="toolbar">
         <label>Scope <select id="scope-select" name="scope"></select></label>
         <div class="kind-toggles" id="kind-toggles" role="group" aria-label="Relationship kinds shown"></div>
+        <div class="zoom-controls" role="group" aria-label="Zoom">
+          <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+          <button type="button" id="zoom-fit">Fit</button>
+          <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+        </div>
         <button type="button" id="relayout">Relayout</button>
       </div>
+      <p class="muted graph-hint">Scroll to zoom, drag the background to pan, and select a node to focus on its relationships. Keys: + and − zoom, 0 fits, Esc clears the selection.</p>
       <div id="graph-empty" class="empty" hidden>No relationships to draw.</div>
       <div class="graph-layout" id="graph-layout">
         <div class="graph-stage"><svg id="graph" aria-label="Relationship graph"></svg></div>
@@ -153,6 +162,7 @@
   // Graph
   var svg = document.getElementById('graph');
   var detail = document.getElementById('detail');
+  var rootMaps = new Set(deliverables.map(function (d) { return d.map; }));
   var g = R.graph(svg, {
     nodes: nodes,
     edges: edges,
@@ -161,7 +171,10 @@
       return {
         shape: SHAPE[n.kind] || 'circle',
         cls: 'nk-' + (n.kind || 'topic') + (n.missing ? ' is-missing' : ''),
-        label: n.missing ? 'missing' : null
+        label: n.missing ? 'missing' : null,
+        // Root maps of deliverables are the landmarks: drawn larger, labelled at every zoom.
+        size: rootMaps.has(n.id) ? 1.7 : (n.kind === 'map' ? 1.25 : 1),
+        important: n.kind === 'map' || !!n.missing
       };
     },
     edgeStyle: function (e) {
@@ -237,6 +250,9 @@
   }
 
   document.getElementById('relayout').addEventListener('click', function () { g.relayout(); });
+  document.getElementById('zoom-in').addEventListener('click', function () { g.zoomIn(); });
+  document.getElementById('zoom-out').addEventListener('click', function () { g.zoomOut(); });
+  document.getElementById('zoom-fit').addEventListener('click', function () { g.fit(); });
   if (!nodes.length) {
     document.getElementById('graph-empty').hidden = false;
     document.getElementById('graph-layout').hidden = true;

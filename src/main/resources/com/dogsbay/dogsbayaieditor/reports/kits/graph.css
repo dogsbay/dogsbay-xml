@@ -2,19 +2,43 @@
 svg.report-graph {
   display: block; width: 100%; height: 100%; min-height: 360px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  touch-action: none; user-select: none;
+  touch-action: none; user-select: none; cursor: grab;
 }
-.report-graph .g-edge { stroke: var(--muted); stroke-width: 1.4; fill: none; }
-.report-graph .g-edge-label { fill: var(--critical); font-size: 10px; font-weight: 700; text-anchor: middle; }
+svg.report-graph.is-panning { cursor: grabbing; }
+svg.report-graph:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Strokes keep their width on screen at any zoom; labels are sized by the zoom variables the kit sets. */
+.report-graph .g-edge { stroke: var(--muted); stroke-width: 1.4; fill: none; vector-effect: non-scaling-stroke; }
+.report-graph .g-edge-label {
+  fill: var(--critical); font-size: var(--g-edge-label-size, 10px); font-weight: 700; text-anchor: middle;
+  paint-order: stroke; stroke: var(--surface); stroke-width: var(--g-halo, 3px); stroke-linejoin: round;
+}
 .report-graph .g-arrow { fill: var(--muted); }
-.report-graph .g-node { cursor: grab; outline: none; }
-.report-graph .g-node:active { cursor: grabbing; }
-.report-graph .g-shape { fill: var(--surface-2); stroke: var(--text); stroke-width: 1.5; }
+.report-graph .g-node { cursor: pointer; outline: none; }
+.report-graph .g-shape { fill: var(--surface-2); stroke: var(--text); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .report-graph .g-label {
-  fill: var(--text); font-size: 11px; text-anchor: middle; pointer-events: none;
-  paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round;
+  fill: var(--text); font-size: var(--g-label-size, 12px); text-anchor: middle; pointer-events: none;
+  paint-order: stroke; stroke: var(--surface); stroke-width: var(--g-halo, 3px); stroke-linejoin: round;
 }
 .report-graph .g-node:focus-visible .g-shape { stroke: var(--focus); stroke-width: 3.5; }
 .report-graph .g-node.is-selected .g-shape { stroke: var(--accent); stroke-width: 3.5; }
+.report-graph .g-node.is-selected .g-label { font-weight: 700; }
 .report-graph .g-node.is-dim { opacity: .35; }
 .report-graph .is-hidden { display: none; }
+
+/* Zoomed far out, only the nodes that orient the viewer keep their labels, and arrowheads go. */
+.report-graph.is-zoomed-out .g-edge { marker-end: none; }
+.report-graph.is-zoomed-out .g-label { display: none; }
+.report-graph.is-zoomed-out .g-important .g-label,
+.report-graph.is-zoomed-out .g-node.is-selected .g-label,
+.report-graph.is-zoomed-out.has-focus .g-node.is-near .g-label { display: inline; }
+
+/* Focus: everything not connected to the selected node fades back. */
+.report-graph .g-node, .report-graph .g-edge { transition: opacity .15s ease; }
+.report-graph.has-focus .g-node:not(.is-near):not(.is-selected) { opacity: .14; }
+.report-graph.has-focus .g-edge:not(.is-near),
+.report-graph.has-focus .g-edge-label:not(.is-near) { opacity: .06; }
+.report-graph.has-focus .g-edge.is-near { stroke-width: 2.6; }
+@media (prefers-reduced-motion: reduce) {
+  .report-graph .g-node, .report-graph .g-edge { transition: none; }
+}
