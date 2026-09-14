@@ -18,7 +18,10 @@
 package com.dogsbay.dogsbayaieditor.plugin.proposals;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import javax.swing.Icon;
@@ -37,8 +40,10 @@ import com.dogsbay.dogsbayaieditor.plugin.DefaultPluginContext;
 import com.dogsbay.dogsbayaieditor.plugin.Plugin;
 import com.dogsbay.dogsbayaieditor.plugin.PluginContext;
 import com.dogsbay.dogsbayaieditor.plugin.UIService;
+import com.dogsbay.dogsbayaieditor.plugin.proposals.ProjectProposals.FileProposals;
 import com.dogsbay.dogsbayaieditor.services.events.ActiveDocumentChangedEvent;
 import com.dogsbay.dogsbayaieditor.services.events.DocumentClosedEvent;
+import com.dogsbay.xml.DogsBayURLUtilities;
 import com.dogsbay.xml.editor.EditorPopupContributors;
 import com.dogsbay.xml.review.Proposal;
 
@@ -46,13 +51,16 @@ import com.dogsbay.xml.review.Proposal;
  * Shows agent proposals in the text editor and lets the writer decide:
  * highlights in the buffer, a Proposals sidebar, and Accept/Reject on the
  * right-click menu. Works on the live Swing document of the active view,
- * refreshing shortly after each edit.
+ * refreshing shortly after each edit. The sidebar can also list every file
+ * in the project that carries proposals, found by a background scan.
  */
 public final class ProposalsPlugin implements Plugin {
 
     public static final String ID = "proposals";
     private static final String ICON_PATH = "com/dogsbay/dogsbayaieditor/icons/sidebar/lightbulb.png";
     private static final int REFRESH_MS = 400;
+    /** How often the project is scanned while the panel is showing: agents write files that are not open. */
+    private static final int RESCAN_MS = 15_000;
 
     private PluginContext context;
     private DogsBayAIEditor editor;
@@ -65,8 +73,18 @@ public final class ProposalsPlugin implements Plugin {
     private Document watched;
     private DocumentListener watcher;
     private Timer refresh;
+    private Timer rescan;
     /** Where to continue after a decision: the decided proposal's offset, or -1. */
     private int continueAt = -1;
+    /** The file the decision was made in, for continuing in project scope. */
+    private Path continueFile;
+    /** The last project scan, with the active document's entry kept live between scans. */
+    private List<FileProposals> project = List.of();
+    private Path projectRoot;
+    private boolean scanning;
+    private boolean scanAgain;
+    /** Bumped by every decision: a scan that started earlier read text the decision has since changed. */
+    private long decisions;
 
     @Override
     public String getId() {
@@ -80,7 +98,7 @@ public final class ProposalsPlugin implements Plugin {
 
     @Override
     public String getDescription() {
-        return "Agent proposals in the active document: highlights, a list, accept and reject.";
+        return "Agent proposals in the active document or across the project: highlights, a list, accept and reject.";
     }
 
     @Override
@@ -116,7 +134,16 @@ public final class ProposalsPlugin implements Plugin {
 
         refresh = new Timer(REFRESH_MS, e -> refresh());
         refresh.setRepeats(false);
-        activeDocHandler = e -> rebind();
+        rescan = new Timer(RESCAN_MS, e -> {
+            if (panel.isShowing()) {
+                scanProject();
+            }
+        });
+        rescan.start();
+        activeDocHandler = e -> {
+            rebind();
+            scanProject();
+        };
         closedHandler = e -> rebind();
         ctx.getEventBus().subscribe(ActiveDocumentChangedEvent.class, activeDocHandler);
         ctx.getEventBus().subscribe(DocumentClosedEvent.class, closedHandler);
@@ -140,6 +167,7 @@ public final class ProposalsPlugin implements Plugin {
         };
         ctx.getUIService().addEditorPopupContributor(popup);
         rebind();
+        scanProject();
     }
 
     @Override
@@ -148,6 +176,9 @@ public final class ProposalsPlugin implements Plugin {
         highlighter.clear();
         if (refresh != null) {
             refresh.stop();
+        }
+        if (rescan != null) {
+            rescan.stop();
         }
         if (context != null) {
             if (activeDocHandler != null) {
@@ -167,7 +198,10 @@ public final class ProposalsPlugin implements Plugin {
     // ── binding to the active document ──────────────────────────────────
 
     private JTextComponent pane() {
-        DogsBayView view = editor.getView();
+        return paneOf(editor.getView());
+    }
+
+    private static JTextComponent paneOf(DogsBayView view) {
         if (view == null || view.getEditor() == null || view.getEditor().getSelectedEditorPanel() == null) {
             return null;
         }
@@ -175,11 +209,14 @@ public final class ProposalsPlugin implements Plugin {
     }
 
     private Path file() {
-        DogsBayView view = editor.getView();
+        return fileOf(editor.getView());
+    }
+
+    private static Path fileOf(DogsBayView view) {
         try {
             if (view != null && view.getDocument() != null && view.getDocument().getURL() != null
                     && "file".equals(view.getDocument().getURL().getProtocol())) {
-                return Path.of(view.getDocument().getURL().toURI());
+                return ProjectProposals.key(Path.of(view.getDocument().getURL().toURI()));
             }
         } catch (Exception ignore) {
             // not a file
@@ -214,19 +251,116 @@ public final class ProposalsPlugin implements Plugin {
 
     private void refresh() {
         JTextComponent pane = pane();
+        List<Proposal> proposals = pane == null ? List.of() : actions.list(pane.getDocument());
         if (pane == null) {
             highlighter.clear();
-            panel.show(List.of());
-            return;
+        } else {
+            highlighter.show(pane, proposals);
         }
-        List<Proposal> proposals = actions.list(pane.getDocument());
-        highlighter.show(pane, proposals);
-        panel.show(proposals);
+        Path active = file();
+        if (active != null && ProjectProposals.inScope(projectRoot, active)) {
+            // The buffer is newer than the last scan: a decision or an edit shows at once.
+            // Only for files the scan covers, or the next scan would drop the entry again.
+            project = ProjectProposals.replace(project, active,
+                    proposals.isEmpty() ? null : new FileProposals(active, proposals));
+        }
+        if (panel.isProjectScope()) {
+            panel.showProject(project, projectRoot);
+        } else {
+            panel.show(proposals);
+            panel.setOtherFiles((int) project.stream().filter(fp -> !fp.file().equals(active)).count());
+        }
         if (continueAt >= 0) {
             int at = continueAt;
             continueAt = -1;
-            panel.continueAt(at);   // selects the next row, which jumps the editor there
+            panel.continueAt(continueFile, at);   // selects the next row, which jumps the editor there
         }
+    }
+
+    // ── the project ─────────────────────────────────────────────────────
+
+    /**
+     * Look for proposals in every project file, off the Swing thread. Open
+     * documents are read from their buffers. A request while a scan runs is
+     * remembered and run once that scan finishes.
+     */
+    private void scanProject() {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(this::scanProject);
+            return;
+        }
+        if (context == null) {
+            return;
+        }
+        if (scanning) {
+            scanAgain = true;
+            return;
+        }
+        Path root = editor.projectRootForAgents();
+        Map<Path, String> live = new HashMap<>();
+        for (Object o : editor.getViews()) {
+            DogsBayView view = (DogsBayView) o;
+            Path f = fileOf(view);
+            JTextComponent pane = paneOf(view);
+            if (f != null && pane != null) {
+                live.put(f, ProposalActions.text(pane.getDocument()));
+            }
+        }
+        long startedAt = decisions;
+        scanning = true;
+        Thread.ofVirtual().name("proposals-scan").start(() -> {
+            List<FileProposals> found;
+            try {
+                found = ProjectProposals.scan(root, live);
+            } catch (RuntimeException e) {
+                found = null;
+            }
+            List<FileProposals> result = found;
+            SwingUtilities.invokeLater(() -> {
+                scanning = false;
+                if (context == null) {
+                    return;
+                }
+                if (startedAt != decisions) {
+                    scanAgain = true;   // read before a decision: it would bring the decided proposal back
+                } else if (result != null && !(result.equals(project) && Objects.equals(root, projectRoot))) {
+                    // Redraw only on a difference: a periodic scan that changes nothing leaves the list alone.
+                    projectRoot = root;
+                    project = result;
+                    refresh();
+                }
+                if (scanAgain) {
+                    scanAgain = false;
+                    scanProject();
+                }
+            });
+        });
+    }
+
+    /**
+     * The text pane showing {@code file}, bringing its view to the front or
+     * opening it first; null when it could not be shown. A null file is the
+     * active document.
+     */
+    private JTextComponent show(Path file) {
+        if (file == null || file.equals(file())) {
+            return pane();
+        }
+        // Match open views by file, not by URL text: a view opened through another
+        // spelling of the path must not get a second buffer.
+        for (Object o : editor.getViews()) {
+            DogsBayView view = (DogsBayView) o;
+            if (file.equals(fileOf(view))) {
+                editor.select(view);
+                return file.equals(file()) ? pane() : null;
+            }
+        }
+        try {
+            editor.getDocumentManager().open(DogsBayURLUtilities.getURLFromFile(file.toFile()), null, false);
+        } catch (Exception e) {
+            return null;
+        }
+        return file.equals(file()) ? pane() : null;
     }
 
     /** Apply a decision's outcome; on success the review continues at the next proposal. */
@@ -234,6 +368,7 @@ public final class ProposalsPlugin implements Plugin {
         if (problem != null) {
             JOptionPane.showMessageDialog(editor, problem, "Proposals", JOptionPane.WARNING_MESSAGE);
         } else {
+            decisions++;
             // Accepting is the writer committing to the change, and the audit
             // trail records it on disk the instant the button is pressed. The
             // file has to follow, or the record says "accepted" over a file that
@@ -246,6 +381,7 @@ public final class ProposalsPlugin implements Plugin {
             }
             if (decided != null) {
                 continueAt = decided.start();
+                continueFile = file();
             }
         }
         refresh.restart();
@@ -305,52 +441,67 @@ public final class ProposalsPlugin implements Plugin {
 
     private final class PanelActions implements ProposalsPanel.Actions {
         @Override
-        public void select(Proposal p) {
-            JTextComponent pane = pane();
+        public void select(Path file, Proposal p) {
+            JTextComponent pane = show(file);
             if (pane != null) {
-                pane.select(p.start(), Math.min(p.end(), pane.getDocument().getLength()));
+                // A row from the project scan was read from disk; find it in the buffer.
+                Proposal live = file == null ? p : ProposalActions.relocate(pane.getDocument(), p);
+                Proposal at = live == null ? p : live;
+                int length = pane.getDocument().getLength();
+                pane.select(Math.min(at.start(), length), Math.min(at.end(), length));
                 pane.requestFocusInWindow();
             }
         }
 
         @Override
-        public void accept(Proposal p) {
-            JTextComponent pane = pane();
+        public void accept(Path file, Proposal p) {
+            JTextComponent pane = show(file);
             if (pane != null) {
                 decide(p, actions.accept(pane.getDocument(), p, file()));
             }
         }
 
         @Override
-        public void reject(Proposal p) {
-            JTextComponent pane = pane();
+        public void reject(Path file, Proposal p) {
+            JTextComponent pane = show(file);
             if (pane != null) {
                 decide(p, actions.reject(pane.getDocument(), p, file()));
             }
         }
 
         @Override
-        public void acceptAll(String author) {
-            JTextComponent pane = pane();
+        public void acceptAll(Path file, String author) {
+            JTextComponent pane = show(file);
             if (pane != null) {
                 decide(null, actions.acceptAll(pane.getDocument(), author, file()));
             }
         }
 
         @Override
-        public void rejectAll(String author) {
-            JTextComponent pane = pane();
+        public void rejectAll(Path file, String author) {
+            JTextComponent pane = show(file);
             if (pane != null) {
                 decide(null, actions.rejectAll(pane.getDocument(), author, file()));
             }
         }
 
         @Override
-        public void resolve(Proposal comment) {
-            JTextComponent pane = pane();
+        public void resolve(Path file, Proposal comment) {
+            JTextComponent pane = show(file);
             if (pane != null) {
                 decide(comment, actions.resolve(pane.getDocument(), comment, "accepted", file()));
             }
+        }
+
+        @Override
+        public void scopeChanged(boolean project) {
+            refresh();
+            scanProject();
+        }
+
+        @Override
+        public void rescan() {
+            scanProject();
         }
     }
 }

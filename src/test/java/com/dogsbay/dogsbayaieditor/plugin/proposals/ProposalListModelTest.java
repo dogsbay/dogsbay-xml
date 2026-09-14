@@ -19,10 +19,12 @@ package com.dogsbay.dogsbayaieditor.plugin.proposals;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.dogsbay.dogsbayaieditor.plugin.proposals.ProjectProposals.FileProposals;
 import com.dogsbay.xml.review.Proposal;
 
 class ProposalListModelTest {
@@ -44,6 +46,46 @@ class ProposalListModelTest {
         assertThat(m.rowAtOrAfter(0)).isEqualTo(0);
         m.set(List.of());
         assertThat(m.rowAtOrAfter(0)).isEqualTo(-1);
+    }
+
+    private static Proposal at(int start, String author) {
+        return new Proposal(Proposal.Kind.INSERT, "i" + start, author, null, "t" + start, start, start + 5, "p", false,
+                false);
+    }
+
+    @Test
+    void groupsProjectRowsByFileAndContinuesIntoTheNextFile() {
+        Path root = Path.of("proj").toAbsolutePath();
+        Path a = root.resolve("topics/a.dita");
+        Path b = root.resolve("topics/b.dita");
+        Path c = root.resolve("topics/c.dita");
+        ProposalListModel m = new ProposalListModel();
+        m.setProject(List.of(new FileProposals(a, List.of(at(10, "ai:a"), at(40, "ai:b"))),
+                new FileProposals(c, List.of(at(5, "ai:a")))), root);
+
+        assertThat(m.isProject()).isTrue();
+        assertThat(m.getColumnCount()).isEqualTo(5);
+        assertThat(m.getValueAt(0, 0)).isEqualTo("topics/a.dita (2)");
+        assertThat(m.getValueAt(1, 0)).as("only the group's first row names the file").isEqualTo("");
+        assertThat(m.getValueAt(2, 0)).isEqualTo("topics/c.dita (1)");
+        assertThat(m.getValueAt(0, 1)).isEqualTo("insert");
+        assertThat(m.fileCount()).isEqualTo(2);
+
+        assertThat(m.rowAtOrAfter(a, 11)).as("same file, later").isEqualTo(1);
+        assertThat(m.rowAtOrAfter(a, 41)).as("file done: first of the next").isEqualTo(2);
+        assertThat(m.rowAtOrAfter(b, 0)).as("the decided file is no longer listed").isEqualTo(2);
+        assertThat(m.rowAtOrAfter(c, 99)).as("review finished: do not jump back to an earlier file").isEqualTo(-1);
+
+        m.filter("ai:a");
+        assertThat(m.getValueAt(0, 0)).as("counts follow the filter").isEqualTo("topics/a.dita (1)");
+        Proposal moved = new Proposal(Proposal.Kind.INSERT, "i5", "ai:a", null, "t5", 7, 12, "p", false, false);
+        assertThat(m.rowOf(new ProposalListModel.Entry(c, moved))).as("same proposal, moved").isEqualTo(1);
+        assertThat(m.rowOf(new ProposalListModel.Entry(a, at(40, "ai:b")))).isEqualTo(-1);
+
+        m.set(List.of(at(1, "ai:a")));
+        assertThat(m.isProject()).isFalse();
+        assertThat(m.getColumnCount()).isEqualTo(4);
+        assertThat(m.fileCount()).isZero();
     }
 
     @Test
