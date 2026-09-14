@@ -122,6 +122,32 @@ public final class DogsbayProjectConfig {
         return c;
     }
 
+    /**
+     * Record the project's setup in the shared {@code config.xml}, keeping everything
+     * else already there (metadata policy, format style, format-on-save). Null values
+     * leave the existing entry unchanged.
+     */
+    public static DogsbayProjectConfig saveSetup(Path workspaceRoot, String projectType,
+            String framework, String defaultRootMap,
+            String defaultDeliverableFile, String defaultDeliverableName) throws IOException {
+        DogsbayProjectConfig c = load(workspaceRoot);
+        if (projectType != null) {
+            c.projectType = projectType;
+        }
+        if (framework != null) {
+            c.framework = framework;
+        }
+        if (defaultRootMap != null) {
+            c.defaultRootMap = defaultRootMap;
+        }
+        if (defaultDeliverableFile != null) {
+            c.defaultDeliverableFile = defaultDeliverableFile;
+            c.defaultDeliverableName = defaultDeliverableName;
+        }
+        c.saveShared(workspaceRoot);
+        return c;
+    }
+
     /** Write the shared {@code config.xml} and ensure {@code .gitignore} ignores
      *  {@code local.xml}. Creates the {@code .dogsbay} folder. */
     public void saveShared(Path workspaceRoot) throws IOException {

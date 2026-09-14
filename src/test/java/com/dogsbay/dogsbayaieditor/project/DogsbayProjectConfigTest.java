@@ -56,6 +56,31 @@ class DogsbayProjectConfigTest {
     }
 
     @Test
+    void savingTheSetupKeepsPolicyAndHouseStyle() throws Exception {
+        Files.createDirectories(root.resolve(".dogsbay"));
+        Files.writeString(root.resolve(".dogsbay/config.xml"), """
+                <dogsbay-project>
+                  <project-type>DITA</project-type>
+                  <default-root-map>old.ditamap</default-root-map>
+                  <default-deliverable file="project.json" name="full"/>
+                  <metadata-policy><rule field="keyword" presence="required"/></metadata-policy>
+                  <format-style indent="tabs" size="4"/>
+                  <format-on-save>true</format-on-save>
+                </dogsbay-project>
+                """);
+
+        DogsbayProjectConfig.saveSetup(root, "DITA", "DITA-OT 4.3.5", "guide.ditamap", null, null);
+
+        DogsbayProjectConfig r = DogsbayProjectConfig.load(root);
+        assertThat(r.getDefaultRootMap()).isEqualTo("guide.ditamap");
+        assertThat(r.getFramework()).isEqualTo("DITA-OT 4.3.5");
+        assertThat(r.getDefaultDeliverableName()).isEqualTo("full");
+        assertThat(r.getMetadataPolicy().rules()).hasSize(1);
+        assertThat(r.getFormatStyle().indentSize()).isEqualTo(4);
+        assertThat(r.isFormatOnSave()).isTrue();
+    }
+
+    @Test
     void committedConfigHasNoMachineSpecificValues() throws Exception {
         DogsbayProjectConfig c = new DogsbayProjectConfig();
         c.setFramework("DITA-OT");

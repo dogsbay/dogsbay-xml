@@ -1272,8 +1272,8 @@ public class DogsBayAIEditor extends StatusFrame implements DogsBayDocumentListe
 	/**
 	 * Write the current workspace's shareable settings to {@code .dogsbay/config.xml}
 	 * (project type, default root map, framework name, the active deliverable as the
-	 * default) plus a {@code .gitignore} for the personal {@code local.xml}. Opt-in
-	 * action; never auto-created. Menu: XML &gt; Save Project Settings.
+	 * default) plus a {@code .gitignore} for the personal {@code local.xml}, keeping the
+	 * metadata policy and house style already there. Menu: Project &gt; Save Project Settings.
 	 */
 	public void saveProjectSettings() {
 		java.io.File root = getFileExplorer() != null
@@ -1294,25 +1294,20 @@ public class DogsBayAIEditor extends StatusFrame implements DogsBayDocumentListe
 			return;
 		}
 		try {
-			var cfg = new com.dogsbay.dogsbayaieditor.project.DogsbayProjectConfig();
 			ProjectProperties pp = currentProjectProperties();
-			if (pp != null) {
-				cfg.setProjectType(pp.getProjectType());
-				cfg.setFramework(pp.getFrameworkName());
-			}
 			// Default root map (relative to the workspace), from the resolved map.
 			java.io.File map = getDefaultRootMapFile();
-			if (map != null) {
-				cfg.setDefaultRootMap(relativizeToRoot(root, map));
-			}
 			// The active deliverable becomes the shared default.
 			var active = deliverableService != null
 					? deliverableService.getActiveDeliverable() : null;
-			if (active != null && active.sourceFile() != null) {
-				cfg.setDefaultDeliverable(
-						relativizeToRoot(root, active.sourceFile().toFile()), active.name());
-			}
-			cfg.saveShared(root.toPath());
+			boolean hasActive = active != null && active.sourceFile() != null;
+			// Merge into the existing file: the policy and house style stay put.
+			com.dogsbay.dogsbayaieditor.project.DogsbayProjectConfig.saveSetup(root.toPath(),
+					pp != null ? pp.getProjectType() : null,
+					pp != null ? pp.getFrameworkName() : null,
+					map != null ? relativizeToRoot(root, map) : null,
+					hasActive ? relativizeToRoot(root, active.sourceFile().toFile()) : null,
+					hasActive ? active.name() : null);
 			invalidateDogsbayConfig();
 			javax.swing.JOptionPane.showMessageDialog(this,
 					"Saved to .dogsbay/config.xml. Commit it to share with your team.",
