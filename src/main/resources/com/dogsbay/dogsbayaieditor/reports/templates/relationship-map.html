@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DITA Relationship Map</title>
+<!--@kit:base-->
+<!--@kit:graph-->
+<style>
+  .graph-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; }
+  .graph-stage { height: 70vh; min-height: 360px; }
+  .detail { overflow: auto; max-height: 70vh; }
+  .detail ul { list-style: none; margin: 4px 0 12px; padding: 0; }
+  .detail li { padding: 3px 0; border-bottom: 1px solid var(--border); }
+  .detail dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0 0 12px; }
+  .detail dt { color: var(--muted); }
+  .detail dd { margin: 0; overflow-wrap: anywhere; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; padding: 0; list-style: none; font-size: .9em; }
+  .legend li { display: inline-flex; align-items: center; gap: 6px; }
+  .legend svg { width: 34px; height: 18px; overflow: visible; }
+  .kind-toggles { display: flex; flex-wrap: wrap; gap: 4px; }
+  .kind-toggles button { font-size: .85em; padding: 2px 8px; }
+
+  /* Edge kinds: colour always paired with a dash pattern and a text label in the legend. */
+  .report-graph .ek-mapref, .legend .ek-mapref { stroke: #4a5bd4; }
+  .report-graph .ek-topicref, .legend .ek-topicref { stroke: #5d6066; }
+  .report-graph .ek-keydef, .legend .ek-keydef { stroke: #8a5300; }
+  .report-graph .ek-keytarget, .legend .ek-keytarget { stroke: #b86e00; }
+  .report-graph .ek-keyref, .legend .ek-keyref { stroke: #a86b00; }
+  .report-graph .ek-conref, .legend .ek-conref { stroke: #0f7c6e; }
+  .report-graph .ek-conkeyref, .legend .ek-conkeyref { stroke: #138a5d; }
+  .report-graph .ek-link, .legend .ek-link { stroke: #2a73c9; }
+  .report-graph .ek-reltable, .legend .ek-reltable { stroke: #6b3fa0; }
+  .report-graph .ek-ditavalref, .legend .ek-ditavalref { stroke: #9c3d80; }
+  .report-graph .ek-profile, .legend .ek-profile { stroke: #7d4fa8; }
+  .report-graph .g-edge.is-broken, .legend .is-broken { stroke: var(--critical); stroke-width: 2.4; }
+  .legend line { stroke-width: 2; }
+
+  .report-graph .nk-map .g-shape, .legend .nk-map { fill: #dbe3fb; }
+  .report-graph .nk-topic .g-shape, .legend .nk-topic { fill: #e8e8e4; }
+  .report-graph .nk-key .g-shape, .legend .nk-key { fill: #fbeccd; }
+  .report-graph .nk-ditaval .g-shape, .legend .nk-ditaval { fill: #f1dcf0; }
+  .report-graph .is-missing .g-shape, .legend .is-missing { stroke: var(--critical); stroke-width: 3; stroke-dasharray: 4 2; }
+  .report-graph .is-missing .g-label { fill: var(--critical); font-weight: 700; }
+  .legend .g-shape-sample { stroke: var(--text); stroke-width: 1.5; }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .report-graph .nk-map .g-shape, :root:not([data-theme="light"]) .legend .nk-map { fill: #2b3566; }
+    :root:not([data-theme="light"]) .report-graph .nk-topic .g-shape, :root:not([data-theme="light"]) .legend .nk-topic { fill: #3a3b40; }
+    :root:not([data-theme="light"]) .report-graph .nk-key .g-shape, :root:not([data-theme="light"]) .legend .nk-key { fill: #5a4414; }
+    :root:not([data-theme="light"]) .report-graph .nk-ditaval .g-shape, :root:not([data-theme="light"]) .legend .nk-ditaval { fill: #55284f; }
+  }
+  :root[data-theme="dark"] .report-graph .nk-map .g-shape, :root[data-theme="dark"] .legend .nk-map { fill: #2b3566; }
+  :root[data-theme="dark"] .report-graph .nk-topic .g-shape, :root[data-theme="dark"] .legend .nk-topic { fill: #3a3b40; }
+  :root[data-theme="dark"] .report-graph .nk-key .g-shape, :root[data-theme="dark"] .legend .nk-key { fill: #5a4414; }
+  :root[data-theme="dark"] .report-graph .nk-ditaval .g-shape, :root[data-theme="dark"] .legend .nk-ditaval { fill: #55284f; }
+
+  @media (max-width: 800px) {
+    .graph-layout { grid-template-columns: 1fr; }
+    .graph-stage { height: 60vh; }
+    .detail { max-height: none; }
+  }
+</style>
+</head>
+<body>
+<div class="report">
+  <header class="report-header">
+    <div>
+      <h1>DITA relationship map</h1>
+      <dl>
+        <div><dt>Root</dt><dd id="hdr-root" class="mono"></dd></div>
+        <div><dt>Scope</dt><dd id="hdr-scope"></dd></div>
+        <div><dt>Generated</dt><dd id="hdr-generated"></dd></div>
+      </dl>
+    </div>
+    <button type="button" id="theme-toggle">Theme</button>
+  </header>
+
+  <div id="tabs">
+    <div role="tablist" aria-label="Report views">
+      <button type="button" role="tab" id="tab-graph" aria-controls="panel-graph" aria-selected="true">Graph</button>
+      <button type="button" role="tab" id="tab-table" aria-controls="panel-table" aria-selected="false">Table</button>
+      <button type="button" role="tab" id="tab-issues" aria-controls="panel-issues" aria-selected="false">Issues</button>
+    </div>
+
+    <section role="tabpanel" id="panel-graph">
+      <div class="toolbar">
+        <label>Scope <select id="scope-select" name="scope"></select></label>
+        <div class="kind-toggles" id="kind-toggles" role="group" aria-label="Relationship kinds shown"></div>
+        <button type="button" id="relayout">Relayout</button>
+      </div>
+      <div id="graph-empty" class="empty" hidden>No relationships to draw.</div>
+      <div class="graph-layout" id="graph-layout">
+        <div class="graph-stage"><svg id="graph" aria-label="Relationship graph"></svg></div>
+        <aside class="panel detail" id="detail" aria-live="polite">
+          <p class="muted">Select a node to see its relationships.</p>
+        </aside>
+      </div>
+      <ul class="legend" id="legend" aria-label="Legend"></ul>
+    </section>
+
+    <section role="tabpanel" id="panel-table" hidden>
+      <div class="toolbar">
+        <label>Filter <input type="search" id="edge-filter" name="edge-filter" placeholder="Filter relationships"></label>
+        <span class="table-count" id="edge-count"></span>
+      </div>
+      <div id="edge-table"></div>
+    </section>
+
+    <section role="tabpanel" id="panel-issues" hidden>
+      <div class="toolbar">
+        <label>Filter <input type="search" id="issue-filter" name="issue-filter" placeholder="Filter issues"></label>
+        <span class="table-count" id="issue-count"></span>
+      </div>
+      <div id="issue-table"></div>
+    </section>
+  </div>
+</div>
+
+<script id="report-meta" type="application/json">{}</script>
+<script id="report-data" type="application/json">{}</script>
+<script>
+(function () {
+  'use strict';
+  var R = window.Report;
+  var el = R.el;
+  var data = R.data();
+  var nodes = Array.isArray(data.nodes) ? data.nodes : [];
+  var edges = Array.isArray(data.edges) ? data.edges : [];
+  var issues = Array.isArray(data.issues) ? data.issues : [];
+  var deliverables = Array.isArray(data.deliverables) ? data.deliverables : [];
+  var nodeById = new Map();
+  nodes.forEach(function (n) { if (n && n.id != null) nodeById.set(n.id, n); });
+
+  var SHAPE = { map: 'square', topic: 'circle', key: 'diamond', ditaval: 'chevron' };
+  var DASH = {
+    mapref: null, topicref: null, keydef: '2 3', keytarget: '6 2 2 2', keyref: '1 3',
+    conref: '8 3', conkeyref: '8 3 2 3', link: '4 4', reltable: '10 2 2 2 2 2', ditavalref: '3 2', profile: '12 4'
+  };
+
+  function nodeLabel(id) {
+    var n = nodeById.get(id);
+    return n && n.title ? n.title : String(id);
+  }
+
+  // Header
+  document.getElementById('hdr-root').textContent = data.root || '(unknown)';
+  document.getElementById('hdr-scope').textContent = data.scope || 'All';
+  document.getElementById('hdr-generated').textContent = data.generated || R.meta().generated || '';
+  R.themeToggle(document.getElementById('theme-toggle'));
+  var tabs = R.tabs(document.getElementById('tabs'));
+
+  // Graph
+  var svg = document.getElementById('graph');
+  var detail = document.getElementById('detail');
+  var g = R.graph(svg, {
+    nodes: nodes,
+    edges: edges,
+    label: function (n) { return n.title || n.id; },
+    nodeStyle: function (n) {
+      return {
+        shape: SHAPE[n.kind] || 'circle',
+        cls: 'nk-' + (n.kind || 'topic') + (n.missing ? ' is-missing' : ''),
+        label: n.missing ? 'missing' : null
+      };
+    },
+    edgeStyle: function (e) {
+      return {
+        dash: DASH[e.kind] || null,
+        cls: 'ek-' + (e.kind || 'link') + (e.broken ? ' is-broken' : ''),
+        label: e.broken ? 'broken' : null
+      };
+    },
+    onSelect: showDetail
+  });
+
+  var kinds = [];
+  edges.forEach(function (e) { if (e.kind && kinds.indexOf(e.kind) < 0) kinds.push(e.kind); });
+  var enabledKinds = new Set(kinds);
+  var toggles = document.getElementById('kind-toggles');
+  kinds.forEach(function (kind) {
+    toggles.appendChild(el('button', {
+      type: 'button', 'aria-pressed': 'true',
+      onclick: function (evt) {
+        var btn = evt.currentTarget;
+        var on = btn.getAttribute('aria-pressed') !== 'true';
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (on) enabledKinds.add(kind); else enabledKinds.delete(kind);
+        applyScope();
+      }
+    }, kind));
+  });
+
+  var scopeSelect = document.getElementById('scope-select');
+  scopeSelect.appendChild(el('option', { value: '' }, 'All'));
+  deliverables.forEach(function (d, i) {
+    scopeSelect.appendChild(el('option', { value: String(i) }, d.name || d.map || ('Deliverable ' + (i + 1))));
+  });
+  scopeSelect.addEventListener('change', function () { applyScope(); g.relayout(); });
+
+  function scopeNodes() {
+    if (scopeSelect.value === '') return null;
+    var d = deliverables[Number(scopeSelect.value)];
+    if (!d) return null;
+    var set = new Set(Array.isArray(d.ships) ? d.ships : []);
+    if (d.map) set.add(d.map);
+    (d.ditavals || []).forEach(function (v) { if (nodeById.has(v)) set.add(v); });
+    // Keys and ditavals touched by shipped nodes.
+    edges.forEach(function (e) {
+      [[e.from, e.to], [e.to, e.from]].forEach(function (pair) {
+        if (!set.has(pair[0])) return;
+        var other = nodeById.get(pair[1]);
+        if (other && (other.kind === 'key' || other.kind === 'ditaval')) set.add(pair[1]);
+      });
+    });
+    return set;
+  }
+
+  function applyScope() {
+    var set = scopeNodes();
+    g.setVisible(
+      function (n) { return !set || set.has(n.id); },
+      function (e) { return enabledKinds.has(e.kind); }
+    );
+  }
+
+  document.getElementById('relayout').addEventListener('click', function () { g.relayout(); });
+  if (!nodes.length) {
+    document.getElementById('graph-empty').hidden = false;
+    document.getElementById('graph-layout').hidden = true;
+  }
+
+  function edgeItem(e, otherId, arrow) {
+    var other = nodeById.get(otherId);
+    var btn = el('button', { type: 'button', class: 'link-button', onclick: function () { g.select(otherId); } }, nodeLabel(otherId));
+    return el('li', null,
+      el('span', { class: 'muted' }, e.kind + ' ' + arrow + ' '), other ? btn : String(otherId),
+      e.line != null ? el('span', { class: 'muted' }, ' (line ' + e.line + ')') : null,
+      e.via ? el('span', { class: 'muted' }, ' via ' + e.via) : null,
+      e.broken ? [' ', R.badge('broken')] : null);
+  }
+
+  function showDetail(n) {
+    detail.textContent = '';
+    if (!n) { detail.appendChild(el('p', { class: 'muted' }, 'Select a node to see its relationships.')); return; }
+    var incoming = edges.filter(function (e) { return e.to === n.id; });
+    var outgoing = edges.filter(function (e) { return e.from === n.id; });
+    detail.appendChild(el('h2', null, n.title || n.id, n.missing ? [' ', R.badge('missing')] : null));
+    var dl = el('dl');
+    [['Id', n.id], ['Kind', n.kind], ['Type', n.type], ['Ships in', (n.ships || []).join(', ')]].forEach(function (row) {
+      if (row[1]) { dl.appendChild(el('dt', null, row[0])); dl.appendChild(el('dd', { class: row[0] === 'Id' ? 'mono' : null }, row[1])); }
+    });
+    detail.appendChild(dl);
+    detail.appendChild(el('h3', null, 'Outgoing (' + outgoing.length + ')'));
+    detail.appendChild(outgoing.length
+      ? el('ul', null, outgoing.map(function (e) { return edgeItem(e, e.to, '→'); }))
+      : el('p', { class: 'muted' }, 'None.'));
+    detail.appendChild(el('h3', null, 'Incoming (' + incoming.length + ')'));
+    detail.appendChild(incoming.length
+      ? el('ul', null, incoming.map(function (e) { return edgeItem(e, e.from, '←'); }))
+      : el('p', { class: 'muted' }, 'None.'));
+  }
+
+  // Legend
+  var legend = document.getElementById('legend');
+  function legendItem(sample, text) {
+    var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '-17 -9 34 18');
+    s.setAttribute('aria-hidden', 'true');
+    s.appendChild(sample);
+    legend.appendChild(el('li', null, s, text));
+  }
+  function svgNode(tag, attrs) {
+    var n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.keys(attrs).forEach(function (k) { if (attrs[k] != null) n.setAttribute(k, attrs[k]); });
+    return n;
+  }
+  var shapeSamples = {
+    map: function (c) { return svgNode('rect', { x: -7, y: -7, width: 14, height: 14, class: c }); },
+    topic: function (c) { return svgNode('circle', { r: 7, class: c }); },
+    key: function (c) { return svgNode('path', { d: 'M0,-8 L8,0 L0,8 L-8,0 Z', class: c }); },
+    ditaval: function (c) { return svgNode('path', { d: 'M-8,-7 L2,-7 L8,0 L2,7 L-8,7 L-2,0 Z', class: c }); }
+  };
+  Object.keys(shapeSamples).forEach(function (kind) {
+    legendItem(shapeSamples[kind]('g-shape-sample nk-' + kind), kind + ' (' + SHAPE[kind] + ')');
+  });
+  legendItem(shapeSamples.topic('g-shape-sample nk-topic is-missing'), 'missing file (red dashed outline, labelled)');
+  kinds.forEach(function (kind) {
+    legendItem(svgNode('line', { x1: -16, y1: 0, x2: 16, y2: 0, class: 'ek-' + kind, 'stroke-dasharray': DASH[kind] }),
+      kind + (DASH[kind] ? ' (dash ' + DASH[kind] + ')' : ' (solid)'));
+  });
+  legendItem(svgNode('line', { x1: -16, y1: 0, x2: 16, y2: 0, class: 'is-broken' }), 'broken reference (red, labelled "broken")');
+
+  // Table
+  R.table(document.getElementById('edge-table'), [
+    { key: 'kind', label: 'Relationship' },
+    { key: 'from', label: 'From', value: function (e) { return nodeLabel(e.from); }, filterValue: function (e) { return nodeLabel(e.from) + ' ' + e.from; },
+      render: function (e) { return nodeLink(e.from, nodeLabel(e.from)); } },
+    { key: 'to', label: 'To', value: function (e) { return nodeLabel(e.to); }, filterValue: function (e) { return nodeLabel(e.to) + ' ' + e.to; },
+      render: function (e) { return nodeLink(e.to, nodeLabel(e.to)); } },
+    { key: 'line', label: 'Line' },
+    { key: 'via', label: 'Via', value: function (e) { return [e.via, e.fragment ? '#' + e.fragment : null].filter(Boolean).join(' '); } },
+    { key: 'broken', label: 'State', value: function (e) { return e.broken ? 'broken' : 'ok'; },
+      render: function (e) { return e.broken ? R.badge('broken') : R.badge('ok'); } }
+  ], edges, {
+    sortable: true, caption: 'All relationships', filterInput: document.getElementById('edge-filter'),
+    countEl: document.getElementById('edge-count'), empty: 'No relationships were found.'
+  });
+
+  function findNodeForFile(file) {
+    if (file == null) return null;
+    if (nodeById.has(file)) return file;
+    var match = null;
+    nodeById.forEach(function (n, id) {
+      if (!match && (String(id).endsWith('/' + file) || String(file).endsWith('/' + id))) match = id;
+    });
+    return match;
+  }
+
+  function nodeLink(id, text) {
+    if (!nodeById.has(id)) return String(text);
+    return el('button', { type: 'button', class: 'link-button', title: 'Show in graph',
+      onclick: function () { revealNode(id); } }, String(text));
+  }
+
+  function revealNode(id) {
+    tabs.select('panel-graph');
+    if (!g.isVisible(id)) { scopeSelect.value = ''; applyScope(); }
+    g.select(id);
+  }
+
+  // Issues
+  var SEVERITY_RANK = { error: 0, warning: 1, info: 2 };
+  R.table(document.getElementById('issue-table'), [
+    { key: 'severity', label: 'Severity', value: function (i) { return SEVERITY_RANK[i.severity] != null ? SEVERITY_RANK[i.severity] : 9; },
+      filterValue: function (i) { return i.severity; }, render: function (i) { return R.badge(i.severity || 'info'); } },
+    { key: 'rule', label: 'Rule', className: 'mono' },
+    { key: 'file', label: 'File', render: function (i) {
+      var id = findNodeForFile(i.file);
+      return id ? nodeLink(id, i.file) : String(i.file || '');
+    } },
+    { key: 'line', label: 'Line' },
+    { key: 'message', label: 'Message' }
+  ], issues, {
+    sortable: true, caption: 'Issues', filterInput: document.getElementById('issue-filter'),
+    countEl: document.getElementById('issue-count'), empty: 'No issues found.'
+  });
+  var issueTab = document.getElementById('tab-issues');
+  issueTab.textContent = 'Issues (' + issues.length + ')';
+
+  applyScope();
+})();
+</script>
+</body>
+</html>

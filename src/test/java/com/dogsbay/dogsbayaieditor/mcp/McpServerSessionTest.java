@@ -63,6 +63,15 @@ class McpServerSessionTest {
     }
 
     @Test
+    void initializeNamesTheEntryPointsInItsInstructions() throws Exception {
+        String response = request(INIT, new Headers(), new Headers(), Optional.empty());
+
+        String instructions = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response)
+                .at("/result/instructions").asText();
+        assertThat(instructions).contains("project_health").contains("project_graph").contains("render_report");
+    }
+
+    @Test
     void toolCallsEchoingTheHeaderRunUnderThatSession() {
         Headers out = new Headers();
         request(INIT, new Headers(), out, Optional.empty());

@@ -38,7 +38,7 @@ public sealed interface Command<R> permits
     ListSidebarsCommand, SwitchSidebarCommand, OpenDitaMapCommand,
     NewDocumentCommand,
     WhereUsedCommand, ListKeysCommand, ResolveKeyCommand,
-    CheckLinksCommand, RenderPreviewCommand,
+    CheckLinksCommand, RenderPreviewCommand, RenderReportCommand, ProjectGraphCommand,
     HealthCommand, RenameFileCommand, RenameKeyCommand, DeleteFileCommand,
     RetargetCommand, KeyifyCommand, InlineKeyCommand, ExtractConrefCommand,
     CreateKeydefCommand, InlineConrefCommand, RenameElementIdCommand,

@@ -163,6 +163,50 @@ public class JsonRpcHandler {
                 boolean showChanges = params.path("showChanges").asBoolean(false);
                 yield executor.execute(new RenderPreviewCommand(file, output, map, ditaval, showChanges));
             }
+            case "project-graph" -> {
+                String root = requiredString(params, "root");
+                yield executor.execute(new ProjectGraphCommand(root, optionalString(params, "map"),
+                        optionalString(params, "deliverable"), params.path("checks").asBoolean(true)));
+            }
+            case "render-report" -> {
+                String root = optionalString(params, "root");
+                String output = requiredString(params, "output");
+                if (root != null && !Path.of(output).isAbsolute()) {
+                    output = Path.of(root).resolve(output).toString();
+                }
+                String template = optionalString(params, "template");
+                String data = optionalString(params, "data");
+                String sourceLabel = null;
+                if (data == null) {
+                    // Run the source under the same session, so the page shows exactly what the tool returns.
+                    String source = optionalString(params, "source");
+                    if (source == null) {
+                        throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                                "render_report needs a source (a read-only tool such as project_graph) or data (JSON)");
+                    }
+                    String sourceMethod = source.trim().replace('_', '-');
+                    if (!isReadOnly(sourceMethod)) {
+                        throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                                "A report's source must be a read-only tool; '" + source + "' is not one");
+                    }
+                    ObjectNode args = sourceArgs(params.get("args"));
+                    if (root != null && !args.has("root")) {
+                        args.put("root", root);
+                    }
+                    Object result = dispatchWith(executor, sourceMethod, args);
+                    try {
+                        data = mapper.writeValueAsString(result);
+                    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                        throw new CommandException(CommandException.ErrorCode.INTERNAL_ERROR,
+                                "Could not serialise the " + sourceMethod + " result: " + e.getMessage(), e);
+                    }
+                    sourceLabel = sourceMethod + " " + args;
+                    if (template == null) {
+                        template = defaultTemplateFor(sourceMethod);
+                    }
+                }
+                yield executor.execute(new RenderReportCommand(root, template, output, data, sourceLabel));
+            }
             case "health" -> {
                 String root = params.get("root").asText();
                 String rootMap = optionalString(params, "map");
@@ -184,7 +228,11 @@ public class JsonRpcHandler {
                 String root = params.get("root").asText();
                 String rootMap = optionalString(params, "map");
                 String schematron = optionalString(params, "schematron");
-                yield executor.execute(new ProjectHealthCommand(root, rootMap, schematron));
+                // Agents get rules grouped unless they ask otherwise: the per-file form
+                // repeated one message dozens of times.
+                yield executor.execute(new ProjectHealthCommand(root, rootMap, schematron,
+                        stringList(params, "include"), optionalString(params, "severity"),
+                        params.path("group").asBoolean(true)));
             }
             case "conref-audit" -> {
                 String root = params.get("root").asText();
@@ -616,6 +664,8 @@ public class JsonRpcHandler {
             case "resolve-key" -> ResolveKeyCommand.class;
             case "check-links" -> CheckLinksCommand.class;
             case "render-preview" -> RenderPreviewCommand.class;
+            case "render-report" -> RenderReportCommand.class;
+            case "project-graph" -> ProjectGraphCommand.class;
             case "health" -> HealthCommand.class;
             case "validate-project" -> ValidateProjectCommand.class;
             case "project-health" -> ProjectHealthCommand.class;
@@ -737,6 +787,54 @@ public class JsonRpcHandler {
     private Path optionalPathParam(JsonNode params, String name) {
         if (!params.has(name) || params.get(name).isNull()) return null;
         return Path.of(params.get(name).asText());
+    }
+
+    /** A report source's arguments: a JSON object, or the same as a JSON string (the CLI's form). */
+    private static ObjectNode sourceArgs(JsonNode args) throws CommandException {
+        if (args == null || args.isNull()) {
+            return mapper.createObjectNode();
+        }
+        if (args.isObject()) {
+            return ((ObjectNode) args).deepCopy();
+        }
+        try {
+            JsonNode parsed = mapper.readTree(args.asText());
+            if (parsed != null && parsed.isObject()) {
+                return (ObjectNode) parsed;
+            }
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            // reported below
+        }
+        throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                "args must be a JSON object of the source tool's arguments");
+    }
+
+    /** The built-in template made for a source's output, or null when there is none. */
+    static String defaultTemplateFor(String method) {
+        return switch (method) {
+            case "project-graph" -> "relationship-map";
+            case "project-health" -> "health";
+            default -> null;
+        };
+    }
+
+    /** A list parameter given as a JSON array or a comma-separated string; null when absent. */
+    static java.util.List<String> stringList(JsonNode params, String name) {
+        JsonNode node = params.get(name);
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (node.isArray()) {
+            node.forEach(n -> out.add(n.asText()));
+        } else {
+            for (String part : node.asText().split(",")) {
+                if (!part.isBlank()) {
+                    out.add(part.trim());
+                }
+            }
+        }
+        return out;
     }
 
     private String optionalString(JsonNode params, String name) {

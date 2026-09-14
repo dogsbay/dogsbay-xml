@@ -22,12 +22,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.dogsbay.dogsbayaieditor.commands.results.DeliverableValidation;
+import com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport;
 
 class ValidateDeliverablesCommandTest {
 
@@ -37,15 +36,14 @@ class ValidateDeliverablesCommandTest {
         Files.writeString(dir.resolve(name), content);
     }
 
-    private static DeliverableValidation byName(List<DeliverableValidation> ds, String name) {
-        return ds.stream().filter(d -> d.name().equals(name)).findFirst().orElseThrow();
+    private static DeliverablesReport.Deliverable byName(DeliverablesReport r, String name) {
+        return r.deliverables().stream().filter(d -> d.name().equals(name)).findFirst().orElseThrow();
     }
 
-    @Test
-    void validatesEachDeliverablesPublicationSet(@TempDir Path dir) throws Exception {
+    private void twoDeliverables(Path dir, String apiTopics) throws Exception {
         write(dir, "guide.ditamap",
             "<map><topicref href=\"a.xml\"/><topicref href=\"bad.xml\"/></map>");
-        write(dir, "api.ditamap", "<map><topicref href=\"c.xml\"/></map>");
+        write(dir, "api.ditamap", "<map>" + apiTopics + "</map>");
         write(dir, "a.xml", "<topic><title>A</title></topic>");
         write(dir, "bad.xml", "<topic><title>B</title>");          // not well-formed
         write(dir, "c.xml", "<topic><title>C</title></topic>");
@@ -54,23 +52,43 @@ class ValidateDeliverablesCommandTest {
                 { "name": "guide", "context": { "input": "guide.ditamap" } },
                 { "name": "api",   "context": { "input": "api.ditamap" } } ] }
             """);
+    }
 
-        List<DeliverableValidation> ds =
-            executor.execute(new ValidateDeliverablesCommand(dir.toString()));
+    @Test
+    void validatesEachDeliverablesPublicationSet(@TempDir Path dir) throws Exception {
+        twoDeliverables(dir, "<topicref href=\"c.xml\"/>");
 
-        assertThat(ds).extracting(DeliverableValidation::name)
+        DeliverablesReport r = executor.execute(new ValidateDeliverablesCommand(dir.toString()));
+
+        assertThat(r.deliverables()).extracting(DeliverablesReport.Deliverable::name)
                 .containsExactlyInAnyOrder("guide", "api");
-
         // guide pulls in the invalid bad.xml; api is clean
-        assertThat(byName(ds, "guide").validation().failed()).isEqualTo(1);
-        assertThat(byName(ds, "guide").validation().findings())
-                .anySatisfy(f -> assertThat(f.file()).endsWith("bad.xml"));
-        assertThat(byName(ds, "api").validation().isClean()).isTrue();
+        assertThat(byName(r, "guide").failed()).isEqualTo(1);
+        assertThat(byName(r, "api").failed()).isZero();
+        assertThat(r.findings()).isNotEmpty()
+                .allSatisfy(f -> assertThat(f.file()).endsWith("bad.xml"))
+                .allSatisfy(f -> assertThat(f.deliverables()).containsExactly("guide"));
+        assertThat(r.isClean()).isFalse();
+    }
+
+    @Test
+    void aFileBrokenInEveryDeliverableIsReportedOnceNamingThemAll(@TempDir Path dir) throws Exception {
+        twoDeliverables(dir, "<topicref href=\"c.xml\"/><topicref href=\"bad.xml\"/>");
+
+        DeliverablesReport r = executor.execute(new ValidateDeliverablesCommand(dir.toString()));
+
+        assertThat(byName(r, "guide").failed()).isEqualTo(1);
+        assertThat(byName(r, "api").failed()).isEqualTo(1);
+        long distinct = r.findings().stream().map(f -> f.line() + ":" + f.column() + ":" + f.message()).distinct().count();
+        assertThat(r.findings()).hasSize((int) distinct);
+        assertThat(r.findings()).allSatisfy(f -> assertThat(f.deliverables()).containsExactly("guide", "api"));
     }
 
     @Test
     void emptyWhenNoProjectFileOrRootMap(@TempDir Path dir) throws Exception {
         write(dir, "lonely.xml", "<root/>");
-        assertThat(executor.execute(new ValidateDeliverablesCommand(dir.toString()))).isEmpty();
+        DeliverablesReport r = executor.execute(new ValidateDeliverablesCommand(dir.toString()));
+        assertThat(r.deliverables()).isEmpty();
+        assertThat(r.isClean()).isTrue();
     }
 }

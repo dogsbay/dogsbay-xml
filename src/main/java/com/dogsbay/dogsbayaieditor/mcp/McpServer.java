@@ -287,6 +287,8 @@ public class McpServer implements HttpHandler {
         serverInfo.put("name", "dogsbay-editor");
         serverInfo.put("version",
             com.dogsbay.dogsbayaieditor.Identity.getIdentity().getVersion());
+        // With a hundred tools listed flat, name the entry points (MCP 2025 "instructions").
+        result.put("instructions", com.dogsbay.agent.AgentGuidance.mcpInstructions());
 
         return formatResult(id, result);
     }
@@ -400,9 +402,9 @@ public class McpServer implements HttpHandler {
         list.add(new McpTool("validate_document",
             "Validate an XML document against its schema: XSD, DTD or RelaxNG. A DITA topic or map "
             + "with no schema or catalog given is validated against the bundled DITA DTDs, so the "
-            + "result covers structure, not only well-formedness. This is grammar validation only: "
-            + "for the project's business rules (required metadata such as shortdesc, style rules) "
-            + "also run schematron_project or metadata_audit, and check_links for references. "
+            + "result covers structure, not only well-formedness. This is grammar validation of one "
+            + "file only: for references, keys, element ids, metadata and (with schematron) house "
+            + "rules across the project or a map, run project_health. "
             + "Pass catalog files only for non-DITA DOCTYPEs.",
             "validate", schema(
                 prop("file", "string", "Absolute path to XML file", true),
@@ -448,7 +450,8 @@ public class McpServer implements HttpHandler {
         list.add(new McpTool("where_used",
             "Find every reference to a file across a project: map topicrefs, "
             + "conrefs, links, images — including indirect references via keys "
-            + "when a root map is given. Essential before renaming or moving a topic.",
+            + "when a root map is given. Essential before renaming or moving a topic. "
+            + "For the whole project's structure in one call, use project_graph.",
             "where-used", schema(
                 prop("file", "string", "The target file path", true),
                 prop("root", "string", "Project root directory to scan", true),
@@ -479,27 +482,36 @@ public class McpServer implements HttpHandler {
         list.add(new McpTool("check_links",
             "Report broken references across a project: path references whose "
             + "target file doesn't exist, and undefined keys when a root map "
-            + "is given. Empty result means the project is clean.",
+            + "is given. Empty result means the references are clean. project_health includes this "
+            + "check; use check_links to re-check references alone after a fix.",
             "check-links", schema(
                 prop("root", "string", "Project root directory to scan", true),
                 prop("map", "string", "Root map for key validation", false)
             )));
 
         list.add(new McpTool("project_health",
-            "Comprehensive project health: broken references, undefined/unused keys, "
-            + "orphan topics, DTD/grammar validation of the scope (the map's "
-            + "publication set when a map is given), AND the conref element-id audit "
-            + "(reuse refs whose target file exists but #fragment id is missing). "
-            + "'clean' is true only when everything passes — use it as a done-gate. "
-            + "Pass 'schematron' to include the project's house rules (shortdesc "
-            + "required, no hardcoded product name, …), which grammar validation "
-            + "cannot express and which are otherwise not checked here.",
+            "START HERE for any validation or audit. A superset of check_links (broken "
+            + "references, undefined/unused keys, orphan topics), validate_project (DTD/grammar "
+            + "validation of the scope: the map's publication set when a map is given), "
+            + "conref_audit (reuse refs whose target file exists but #fragment id is missing) "
+            + "and metadata_audit, in one call. "
+            + "'clean' is true only when everything that ran passes — use it as a done-gate; "
+            + "'checked' lists what ran. Pass 'schematron' to include the project's house rules "
+            + "(shortdesc required, no hardcoded product name, …), which grammar validation "
+            + "cannot express and which are otherwise not checked here. Metadata and Schematron "
+            + "findings come grouped by rule with counts (metadataRules, schematronRules).",
             "project-health", schema(
                 prop("root", "string", "Project root directory to scan", true),
                 prop("map", "string", "Root map — enables key analysis and scopes "
                     + "validation to the publication set", false),
                 prop("schematron", "string", "Schematron schema (.sch) of house rules "
-                    + "to apply across the same scope", false)
+                    + "to apply across the same scope", false),
+                prop("include", "string", "Comma-separated legs to run, default all: "
+                    + "reuse, validation, elementIds, metadata, schematron, proposals", false),
+                prop("severity", "string", "'error' keeps only findings that block clean "
+                    + "(drops unused keys, orphans, warnings and recommended metadata)", false),
+                prop("group", "boolean", "Group metadata and Schematron findings by rule "
+                    + "(default true); false lists every finding", false)
             )));
 
         list.add(new McpTool("schematron_project",
@@ -563,7 +575,9 @@ public class McpServer implements HttpHandler {
             "Validate every deliverable of the project (from a project.{xml,json,yaml} "
             + "file, else a synthesized default) — each deliverable's map publication "
             + "set, on disk. Returns one result per deliverable (name, map, counts + "
-            + "failing files), so you can see which audiences/outputs are affected.",
+            + "failing files), so you can see which audiences/outputs are affected. Grammar only: "
+            + "for references, keys and reuse per deliverable use project_graph, or project_health "
+            + "with that deliverable's map.",
             "validate-deliverables", schema(
                 prop("root", "string", "Project root directory", true)
             )));
@@ -574,7 +588,8 @@ public class McpServer implements HttpHandler {
             + "DITAVAL, so it catches keyref/conref resolution failures, circular "
             + "maprefs, and filtered-content errors that validate_project cannot. "
             + "Returns one result per deliverable (name, map, ditaval, success, "
-            + "diagnostics). Requires DITA-OT installed; slower than validate_project.",
+            + "diagnostics). Requires DITA-OT installed; slower than validate_project. "
+            + "Complements project_health, which checks the sources on disk without DITA-OT.",
             "validate-deep", schema(
                 prop("root", "string", "Project root directory", true),
                 prop("deliverable", "string",
@@ -627,7 +642,8 @@ public class McpServer implements HttpHandler {
             + ".dogsbay/config.xml, or an explicit policy file). Reports per file the "
             + "missing-required, forbidden, and out-of-vocabulary metadata (prolog/"
             + "topicmeta: author, audience, category, keywords, prodname, critdates, …). "
-            + "No policy ⇒ no findings.",
+            + "No policy ⇒ no findings. Included in project_health; use this to re-check "
+            + "metadata alone after a fix.",
             "metadata-audit", schema(
                 prop("root", "string", "Project root directory", true),
                 prop("map", "string", "Root map — audit its publication set", false),
@@ -803,7 +819,8 @@ public class McpServer implements HttpHandler {
             "Audit content reuse for broken element ids: conref/conkeyref/keyref/href "
             + "whose target FILE exists but whose #fragment names an id the target "
             + "doesn't contain (e.g. a typo'd conref id). Complements check_links "
-            + "(which only checks the file exists). Empty result means clean.",
+            + "(which only checks the file exists). Empty result means clean. Included in "
+            + "project_health; use this to re-check element ids alone after a fix.",
             "conref-audit", schema(
                 prop("root", "string", "Project root directory to scan", true),
                 prop("map", "string", "Root map — resolves keyref/conkeyref targets", false)
@@ -814,7 +831,9 @@ public class McpServer implements HttpHandler {
             + "the project/map-wide validate. DITA topics/maps use the bundled DITA "
             + "catalog automatically. Returns counts (total/passed/failed) plus the "
             + "failing files with their errors (capped); failed=0 means all valid. "
-            + "Prefer 'map' (the publication set) for a DITA project.",
+            + "Prefer 'map' (the publication set) for a DITA project. Included in project_health, "
+            + "which also checks references, keys, element ids and metadata; use this to re-check "
+            + "validation alone after a fix.",
             "validate-project", schema(
                 prop("root", "string", "Project root directory", true),
                 prop("map", "string", "Root map — validates its publication set", false),
@@ -1013,6 +1032,40 @@ public class McpServer implements HttpHandler {
                 prop("ditaval", "string", "DITAVAL filter", false),
                 prop("showChanges", "boolean", "Render open review proposals as insertions, "
                     + "deletions and comments instead of the accepted view", false)
+            )));
+
+        list.add(new McpTool("project_graph",
+            "How the project connects, in one call: nodes (maps, topics, keys, DITAVALs, with type, "
+            + "title and which deliverables ship them) and typed edges (mapref, topicref, reltable, "
+            + "keydef, keytarget with via = the map that bound the key, keyref, conref, conkeyref, "
+            + "link, ditavalref, profile), plus issues: broken references, undefined keys and keys "
+            + "that resolve in some deliverables but not others, shadowed and unused keys, orphans, "
+            + "and (checks, default true) invalid shipped files, broken element ids and conref push "
+            + "problems. Ids are project-relative. Use instead of where_used per file; pass the "
+            + "result to render_report (template relationship-map) for a page.",
+            "project-graph", schema(
+                prop("root", "string", "Project root directory", true),
+                prop("map", "string", "Limit to one root map", false),
+                prop("deliverable", "string", "Limit to one deliverable from the project file", false),
+                prop("checks", "boolean", "Add DTD validation, element-id and conref push findings "
+                    + "to issues (default true)", false)
+            )));
+
+        list.add(new McpTool("render_report",
+            "Write a standalone HTML page for people: one file that works offline from disk, in light "
+            + "and dark. The page shows a read-only tool's output: give source (project_graph for a "
+            + "relationship map, project_health for a health report) and that tool's args, or pass "
+            + "data (JSON). Templates: relationship-map, health, or a project template path such as "
+            + ".dogsbay/reports/mine.html; defaults from the source. Use this rather than writing an "
+            + "extractor or a page yourself.",
+            "render-report", schema(
+                prop("output", "string", "Where to write the page; relative paths resolve against root", true),
+                prop("root", "string", "Project root: passed to the source tool, and resolves template "
+                    + "and output paths", false),
+                prop("source", "string", "Read-only tool whose output fills the page, e.g. project_graph", false),
+                prop("args", "object", "The source tool's arguments; root is added when omitted", false),
+                prop("data", "string", "JSON to render instead of running a source", false),
+                prop("template", "string", "Built-in template name or project template path", false)
             )));
 
         list.add(new McpTool("open_document",

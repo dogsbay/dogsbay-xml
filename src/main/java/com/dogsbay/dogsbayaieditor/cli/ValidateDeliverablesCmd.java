@@ -25,9 +25,7 @@ import picocli.CommandLine.Parameters;
 
 import com.dogsbay.dogsbayaieditor.commands.HeadlessExecutor;
 import com.dogsbay.dogsbayaieditor.commands.ValidateDeliverablesCommand;
-import com.dogsbay.dogsbayaieditor.commands.results.DeliverableValidation;
-import com.dogsbay.dogsbayaieditor.commands.results.FileValidation;
-import com.dogsbay.dogsbayaieditor.commands.results.ValidationError;
+import com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport;
 
 @Command(name = "validate-deliverables",
         description = "Validate every deliverable of a project (each deliverable's map "
@@ -40,30 +38,31 @@ class ValidateDeliverablesCmd implements Callable<Integer> {
     @Override
     public Integer call() throws Exception {
         var executor = new HeadlessExecutor();
-        var deliverables = executor.execute(new ValidateDeliverablesCommand(root));
+        DeliverablesReport report = executor.execute(new ValidateDeliverablesCommand(root));
 
-        if (deliverables.isEmpty()) {
+        if (report.deliverables().isEmpty()) {
             System.out.println("No deliverables found (no project.{xml,json,yaml} and no "
                     + "default root map).");
             return 0;
         }
 
-        boolean clean = true;
-        for (DeliverableValidation d : deliverables) {
-            var v = d.validation();
+        for (DeliverablesReport.Deliverable d : report.deliverables()) {
             System.out.printf("%s (%s): %d file(s), %d valid, %d invalid%n",
-                    d.name(), d.map(), v.total(), v.passed(), v.failed());
-            for (FileValidation fv : v.findings()) {
-                System.out.println("  " + fv.file() + ":");
-                for (ValidationError e : fv.errors()) {
-                    System.out.printf("    %d:%d  %s: %s%n",
-                            e.line(), e.column(), e.severity(), e.message());
-                }
-            }
-            if (!v.isClean()) {
-                clean = false;
-            }
+                    d.name(), d.map(), d.total(), d.passed(), d.failed());
         }
-        return clean ? 0 : 1;
+
+        // Each invalid file once, with the deliverables it breaks.
+        String current = null;
+        for (DeliverablesReport.Finding f : report.findings()) {
+            if (!f.file().equals(current)) {
+                current = f.file();
+                System.out.println("  " + f.file() + "  [" + String.join(", ", f.deliverables()) + "]:");
+            }
+            System.out.printf("    %d:%d  %s: %s%n", f.line(), f.column(), f.severity(), f.message());
+        }
+        if (report.truncated() > 0) {
+            System.out.println("  … and " + report.truncated() + " more finding(s).");
+        }
+        return report.isClean() ? 0 : 1;
     }
 }

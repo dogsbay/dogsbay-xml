@@ -79,6 +79,8 @@ public class EditorExecutor implements CommandExecutor {
             case ResolveKeyCommand c -> headless.execute(c);
             case CheckLinksCommand c -> headless.execute(c);
             case RenderPreviewCommand c -> headless.execute(c);
+            case RenderReportCommand c -> headless.execute(c);
+            case ProjectGraphCommand c -> headless.execute(c);
             case HealthCommand c -> headless.execute(c);
             case ValidateProjectCommand c -> headless.execute(c);
             case ProjectHealthCommand c -> headless.execute(c);

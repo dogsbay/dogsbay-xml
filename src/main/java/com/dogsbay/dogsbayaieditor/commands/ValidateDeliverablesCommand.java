@@ -18,16 +18,15 @@
 
 package com.dogsbay.dogsbayaieditor.commands;
 
-import java.util.List;
-
-import com.dogsbay.dogsbayaieditor.commands.results.DeliverableValidation;
+import com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport;
 
 /**
  * Validate every deliverable defined for a project — each deliverable's root-map
  * publication set, validated on disk. Resolves the DITA project from a
  * {@code project.&#123;xml,json,yaml&#125;} file (else a synthesized single
- * deliverable from the default root map); returns one result per deliverable so
- * you can see which audiences/outputs are affected.
+ * deliverable from the default root map). Returns counts per deliverable and each
+ * finding once, with the deliverables it breaks, so you can see which
+ * audiences/outputs are affected without the same error repeated per deliverable.
  *
  * <p>Validates the raw publication set per deliverable. DITAVAL-<em>filtered</em>
  * validation (what actually ships after conditional processing) and building the
@@ -37,4 +36,4 @@ import com.dogsbay.dogsbayaieditor.commands.results.DeliverableValidation;
  */
 public record ValidateDeliverablesCommand(
     String root
-) implements Command<List<DeliverableValidation>>, ReadOnlyCommand {}
+) implements Command<DeliverablesReport>, ReadOnlyCommand {}

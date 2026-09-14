@@ -201,6 +201,88 @@ class ProjectHealthCommandTest {
         assertThat(r.isClean()).isFalse();
     }
 
+    // ── legs, severity and grouping: what an agent asks for ────────────
+
+    @Test
+    void includeRunsOnlyTheNamedLegsAndSaysWhichRan(@TempDir Path dir) throws Exception {
+        write(dir, "bad.xml", "<root><a></root>"); // not well-formed
+        write(dir, "a.dita",
+            "<topic id=\"a\"><title>A</title><body><p><xref href=\"missing.dita\"/></p></body></topic>");
+
+        ProjectHealthReport reuseOnly = executor.execute(new ProjectHealthCommand(
+            dir.toString(), null, null, java.util.List.of("REUSE"), null, true));
+        ProjectHealthReport validationOnly = executor.execute(new ProjectHealthCommand(
+            dir.toString(), null, null, java.util.List.of("validation"), null, true));
+
+        assertThat(reuseOnly.checked()).containsExactly("reuse");
+        assertThat(reuseOnly.reuse().brokenReferences()).isNotEmpty();
+        assertThat(reuseOnly.validation().total()).isZero();
+        assertThat(validationOnly.checked()).containsExactly("validation");
+        assertThat(validationOnly.reuse().isClean()).isTrue();
+        assertThat(validationOnly.validation().failed()).isEqualTo(1);
+    }
+
+    @Test
+    void aRelativeMapAndSchemaAreRelativeToTheProject(@TempDir Path dir) throws Exception {
+        // The test JVM runs in the build directory, not in the project: the paths must still resolve.
+        write(dir, "guide.ditamap", "<map><title>G</title><topicref href=\"t.xml\"/></map>");
+        write(dir, "t.xml", "<topic id=\"t\"><title>T</title><body/></topic>");
+        write(dir, "house.sch", SHORTDESC_RULE);
+
+        ProjectHealthReport r = executor.execute(new ProjectHealthCommand(
+            dir.toString(), "guide.ditamap", "house.sch", null, null, true));
+
+        assertThat(r.checked()).contains("reuse", "validation", "schematron");
+        assertThat(r.schematronRules()).singleElement()
+            .satisfies(g -> assertThat(g.message()).isEqualTo("Every topic needs a shortdesc."));
+    }
+
+    @Test
+    void anUnknownLegIsRefusedNamingTheRealOnes(@TempDir Path dir) throws Exception {
+        write(dir, "ok.xml", "<root/>");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> executor.execute(new ProjectHealthCommand(
+                dir.toString(), null, null, java.util.List.of("links"), null, true)))
+            .isInstanceOf(CommandException.class)
+            .hasMessageContaining("links")
+            .hasMessageContaining("elementIds");
+    }
+
+    @Test
+    void severityErrorDropsWhatDoesNotBlock(@TempDir Path dir) throws Exception {
+        // An orphan topic is worth knowing about but is not an error.
+        write(dir, "lonely.dita", "<topic id=\"l\"><title>L</title><body/></topic>");
+
+        ProjectHealthReport all = executor.execute(new ProjectHealthCommand(dir.toString(), null));
+        ProjectHealthReport errors = executor.execute(new ProjectHealthCommand(
+            dir.toString(), null, null, null, "error", true));
+
+        assertThat(all.reuse().orphanTopics()).isNotEmpty();
+        assertThat(errors.reuse().orphanTopics()).isEmpty();
+        assertThat(errors.isClean()).isTrue();
+    }
+
+    @Test
+    void aRuleFiredInManyFilesIsOneGroupThatStillBlocks(@TempDir Path dir) throws Exception {
+        for (String name : new String[] {"one.xml", "two.xml", "three.xml"}) {
+            write(dir, name, "<topic id=\"t\"><title>T</title><body/></topic>");
+        }
+        write(dir, "house.sch", SHORTDESC_RULE);
+
+        ProjectHealthReport r = executor.execute(new ProjectHealthCommand(
+            dir.toString(), null, dir.resolve("house.sch").toString(), null, null, true));
+
+        assertThat(r.schematronRules()).singleElement().satisfies(g -> {
+            assertThat(g.message()).isEqualTo("Every topic needs a shortdesc.");
+            assertThat(g.count()).isEqualTo(3);
+            assertThat(g.severity()).isEqualTo("error");
+            assertThat(g.files()).hasSize(3);
+        });
+        assertThat(r.schematron().findings()).isEmpty();
+        assertThat(r.schematron().failed()).isEqualTo(3);
+        assertThat(r.isClean()).isFalse();
+    }
+
     @Test
     void aProjectThatKeepsItsHouseRulesStaysClean(@TempDir Path dir) throws Exception {
         write(dir, "good.xml",

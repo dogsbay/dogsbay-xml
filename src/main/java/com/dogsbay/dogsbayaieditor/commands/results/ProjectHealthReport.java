@@ -34,13 +34,21 @@ import com.dogsbay.dogsbayaieditor.ditaproject.BatchResult;
  * declare a guide "publish-ready" when it was not. Still <em>not</em> covered:
  * hardcoded product text and markup style.
  *
+ * <p>When the command asked for grouped rules, metadata and Schematron findings
+ * arrive in {@code metadataRules} and {@code schematronRules} instead of the
+ * per-file lists, whose counts stay; "clean" reads whichever form is filled.
+ *
  * @param reuse            the reuse-health report (refs, keys, orphans)
  * @param validation       per-file DTD/grammar validation of the scope (failing files)
  * @param brokenElementIds reuse references pointing at a missing element id
  * @param metadata         required-metadata policy audit (empty when no policy);
  *                         only <em>error</em>-level findings block "clean"
+ * @param openProposals    files still carrying review proposals
  * @param schematron       house-rule findings when the command was given a
  *                         Schematron schema; empty and clean when it was not
+ * @param metadataRules    metadata findings grouped by rule, when grouping was asked for
+ * @param schematronRules  Schematron findings grouped by rule, when grouping was asked for
+ * @param checked          the legs that ran; a leg not listed was not checked, so it says nothing
  */
 public record ProjectHealthReport(
     HealthReport reuse,
@@ -48,15 +56,23 @@ public record ProjectHealthReport(
     List<BrokenRef> brokenElementIds,
     BatchResult<MetadataFinding> metadata,
     List<OpenProposals> openProposals,
-    BatchResult<SchematronFinding> schematron
+    BatchResult<SchematronFinding> schematron,
+    List<RuleGroup> metadataRules,
+    List<RuleGroup> schematronRules,
+    List<String> checked
 ) {
     public ProjectHealthReport {
+        reuse = reuse == null ? new HealthReport(List.of(), List.of(), List.of(), List.of()) : reuse;
+        validation = validation == null ? new BatchResult<>(0, 0, 0, List.of(), 0) : validation;
         brokenElementIds = brokenElementIds == null ? List.of() : List.copyOf(brokenElementIds);
         metadata = metadata == null
                 ? new BatchResult<>(0, 0, 0, List.of(), 0) : metadata;
         openProposals = openProposals == null ? List.of() : List.copyOf(openProposals);
         schematron = schematron == null
                 ? new BatchResult<>(0, 0, 0, List.of(), 0) : schematron;
+        metadataRules = metadataRules == null ? List.of() : List.copyOf(metadataRules);
+        schematronRules = schematronRules == null ? List.of() : List.copyOf(schematronRules);
+        checked = checked == null ? List.of() : List.copyOf(checked);
     }
 
     /** Without a Schematron leg — the shape before the {@code --schematron} option existed. */
@@ -64,6 +80,13 @@ public record ProjectHealthReport(
             List<BrokenRef> brokenElementIds, BatchResult<MetadataFinding> metadata,
             List<OpenProposals> openProposals) {
         this(reuse, validation, brokenElementIds, metadata, openProposals, null);
+    }
+
+    /** Every leg, ungrouped — the shape before legs and grouping existed. */
+    public ProjectHealthReport(HealthReport reuse, BatchResult<FileValidation> validation,
+            List<BrokenRef> brokenElementIds, BatchResult<MetadataFinding> metadata,
+            List<OpenProposals> openProposals, BatchResult<SchematronFinding> schematron) {
+        this(reuse, validation, brokenElementIds, metadata, openProposals, schematron, null, null, null);
     }
 
     /** True when nothing is left to review. Not part of {@link #isClean()}: a proposal is not an error. */
@@ -81,7 +104,9 @@ public record ProjectHealthReport(
     public boolean isClean() {
         return reuse.isClean() && validation.isClean() && brokenElementIds.isEmpty()
                 && metadata.findings().stream().noneMatch(f -> "error".equals(f.severity()))
-                && schematron.findings().stream().noneMatch(ProjectHealthReport::blocks);
+                && metadataRules.stream().noneMatch(g -> "error".equals(g.severity()))
+                && schematron.findings().stream().noneMatch(ProjectHealthReport::blocks)
+                && schematronRules.stream().noneMatch(g -> "error".equals(g.severity()));
     }
 
     /**
@@ -94,7 +119,7 @@ public record ProjectHealthReport(
      * so it blocks — including a fired {@code <report>}, which is how a
      * prohibition ("do not hardcode the product name") is written.
      */
-    private static boolean blocks(SchematronFinding f) {
+    public static boolean blocks(SchematronFinding f) {
         String role = f.role() == null ? "" : f.role().toLowerCase(java.util.Locale.ROOT);
         return !(role.equals("warning") || role.equals("warn")
                 || role.equals("info") || role.equals("information") || role.equals("hint"));

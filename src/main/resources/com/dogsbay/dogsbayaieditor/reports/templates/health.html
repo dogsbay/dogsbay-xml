@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Health Report</title>
+<!--@kit:base-->
+<style>
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 12px 0 20px; }
+  .summary .panel h2 { font-size: .95rem; margin-bottom: 4px; }
+  .summary .status { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+  .summary .status.is-clean { border-color: var(--ok); }
+  .summary .status.is-dirty { border-color: var(--critical); }
+  .summary .figures { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; }
+  .summary .figures div { display: flex; gap: 4px; }
+  .summary .figures dt { color: var(--muted); }
+  .summary .figures dd { margin: 0; font-weight: 600; }
+  .section { margin-bottom: 24px; }
+  .section-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+  .section-head a { color: inherit; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="report">
+  <header class="report-header">
+    <div>
+      <h1>Project health</h1>
+      <dl>
+        <div><dt>Root</dt><dd id="hdr-root" class="mono"></dd></div>
+        <div><dt>Scope</dt><dd id="hdr-scope"></dd></div>
+        <div><dt>Generated</dt><dd id="hdr-generated"></dd></div>
+      </dl>
+    </div>
+    <button type="button" id="theme-toggle">Theme</button>
+  </header>
+  <section class="summary" id="summary" aria-label="Summary"></section>
+  <main id="sections"></main>
+</div>
+
+<script id="report-meta" type="application/json">{}</script>
+<script id="report-data" type="application/json">{}</script>
+<script>
+(function () {
+  'use strict';
+  var R = window.Report;
+  var el = R.el;
+  var data = R.data();
+  var meta = R.meta() || {};
+
+  // project_health output, as the tool returns it: one section per check that ran.
+  function fromProjectHealth(h) {
+    // project_health carries no root; the report records the source command's arguments.
+    var sourceRoot = String(meta.source || '').match(/"root":"([^"]*)"/);
+    function rel(path) {
+      var root = h.root || (sourceRoot ? sourceRoot[1].replace(/\\\\/g, '\\') : '');
+      return root && path && path.indexOf(root) === 0 ? path.slice(root.length).replace(/^[\/\\]/, '') : path;
+    }
+    function ref(severity, rule) {
+      return function (r) { return { severity: severity, rule: rule, file: rel(r.source), line: r.line, message: r.reason || (r.attribute + '="' + r.value + '"') }; };
+    }
+    function groups(list) {
+      return (list || []).map(function (g) {
+        return { severity: g.severity, rule: g.rule, message: g.message, count: g.count, files: (g.files || []).map(rel) };
+      });
+    }
+    var checked = Array.isArray(h.checked) && h.checked.length ? h.checked
+      : ['reuse', 'validation', 'elementIds', 'metadata', 'schematron', 'proposals'];
+    var out = [];
+    var reuse = h.reuse || {};
+    if (checked.indexOf('reuse') >= 0) {
+      out.push({ name: 'References and keys', findings: []
+        .concat((reuse.brokenReferences || []).map(ref('error', 'broken-reference')))
+        .concat((reuse.undefinedKeys || []).map(ref('error', 'undefined-key')))
+        .concat((reuse.unusedKeys || []).map(function (k) { return { severity: 'info', rule: 'unused-key', file: rel(k.definedIn), line: k.line, message: 'Key "' + k.name + '" is never referenced' }; }))
+        .concat((reuse.orphanTopics || []).map(function (t) { return { severity: 'info', rule: 'orphan-topic', file: rel(t), message: 'Nothing references this topic' }; })) });
+    }
+    if (checked.indexOf('validation') >= 0) {
+      var v = h.validation || {};
+      var vf = [];
+      (v.findings || []).forEach(function (f) {
+        (f.errors || []).forEach(function (e) { vf.push({ severity: e.severity || 'error', rule: 'dtd', file: rel(f.file), line: e.line, message: e.message }); });
+      });
+      out.push({ name: 'DTD validation', total: v.total, passed: v.passed, failed: v.failed, findings: vf });
+    }
+    if (checked.indexOf('elementIds') >= 0) {
+      out.push({ name: 'Element ids', findings: (h.brokenElementIds || []).map(ref('error', 'broken-element-id')) });
+    }
+    if (checked.indexOf('metadata') >= 0) {
+      var m = h.metadata || {};
+      var mf = groups(h.metadataRules).concat((m.findings || []).map(function (f) {
+        return { severity: f.severity, rule: f.field, file: rel(f.file), line: f.line, message: f.message };
+      }));
+      out.push({ name: 'Metadata', total: m.total, passed: m.passed, failed: m.failed, findings: mf });
+    }
+    if (checked.indexOf('schematron') >= 0) {
+      var s = h.schematron || {};
+      var sf = groups(h.schematronRules).concat((s.findings || []).map(function (f) {
+        return { severity: 'error', rule: f.test, file: rel(f.file), line: f.line, message: f.message };
+      }));
+      out.push({ name: 'House rules', total: s.total, passed: s.passed, failed: s.failed, findings: sf });
+    }
+    if (checked.indexOf('proposals') >= 0 && (h.openProposals || []).length) {
+      out.push({ name: 'Open review proposals', findings: h.openProposals.map(function (p) {
+        return { severity: 'info', rule: 'proposal', file: rel(p.file), message: p.changes + ' change(s), ' + p.comments + ' comment(s) by ' + (p.authors || []).join(', ') };
+      }) });
+    }
+    return out;
+  }
+
+  var isHealth = !Array.isArray(data.sections) && (data.reuse || data.validation || data.checked);
+  var sections = Array.isArray(data.sections) ? data.sections : (isHealth ? fromProjectHealth(data) : []);
+  var source = String(meta.source || '');
+  var rootMatch = source.match(/"root":"([^"]*)"/);
+  var mapMatch = source.match(/"map":"([^"]*)"/);
+
+  document.getElementById('hdr-root').textContent = data.root || (rootMatch && rootMatch[1]) || '(unknown)';
+  document.getElementById('hdr-scope').textContent = data.scope || (mapMatch && mapMatch[1]) || 'All';
+  document.getElementById('hdr-generated').textContent = data.generated || R.meta().generated || '';
+  R.themeToggle(document.getElementById('theme-toggle'));
+
+  var SEVERITY_RANK = { error: 0, broken: 0, warning: 1, suspect: 2, info: 3 };
+  var totalFindings = sections.reduce(function (sum, s) { return sum + ((s.findings || []).length); }, 0);
+  var clean = typeof data.clean === 'boolean' ? data.clean : totalFindings === 0;
+
+  var summary = document.getElementById('summary');
+  summary.appendChild(el('div', { class: 'panel status ' + (clean ? 'is-clean' : 'is-dirty'), role: 'status' },
+    el('h2', null, 'Overall'),
+    el('div', null, R.badge(clean ? 'clean' : 'not clean', clean ? 'clean' : 'error')),
+    el('span', { class: 'muted' }, totalFindings + (totalFindings === 1 ? ' finding' : ' findings'))));
+
+  function slug(text, i) {
+    return 'section-' + i + '-' + String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  sections.forEach(function (section, i) {
+    var findings = Array.isArray(section.findings) ? section.findings : [];
+    var figures = el('dl', { class: 'figures' });
+    [['passed', section.passed], ['failed', section.failed], ['total', section.total], ['findings', findings.length]].forEach(function (f) {
+      if (f[1] == null) return;
+      figures.appendChild(el('div', null, el('dt', null, f[0]), el('dd', null, String(f[1]))));
+    });
+    var id = slug(section.name, i);
+    summary.appendChild(el('div', { class: 'panel' },
+      el('h2', null, el('a', { href: '#' + id }, section.name || ('Section ' + (i + 1)))),
+      figures));
+
+    var filter = el('input', { type: 'search', name: id + '-filter', id: id + '-filter', placeholder: 'Filter findings', 'aria-label': 'Filter ' + (section.name || 'findings') });
+    var count = el('span', { class: 'table-count' });
+    var host = el('div');
+    var hasRule = findings.some(function (f) { return f.rule; });
+    var hasCount = findings.some(function (f) { return f.count != null || (f.files && f.files.length); });
+
+    var columns = [
+      { key: 'severity', label: 'Severity',
+        value: function (f) { return SEVERITY_RANK[f.severity] != null ? SEVERITY_RANK[f.severity] : 9; },
+        filterValue: function (f) { return f.severity; },
+        render: function (f) { return R.badge(f.severity || 'info'); } }
+    ];
+    if (hasRule) columns.push({ key: 'rule', label: 'Rule', className: 'mono' });
+    columns.push({ key: 'file', label: 'File',
+      value: function (f) { return f.file || (f.files && f.files[0]) || ''; },
+      filterValue: function (f) { return [f.file].concat(f.files || []).filter(Boolean).join(' '); },
+      render: function (f) {
+        var files = Array.isArray(f.files) ? f.files : [];
+        if (files.length > 1 || (files.length === 1 && f.file && files[0] !== f.file)) {
+          return el('details', null,
+            el('summary', null, (f.file ? f.file + ' and ' : '') + files.length + (files.length === 1 ? ' file' : ' files')),
+            el('ul', null, files.map(function (name) { return el('li', { class: 'mono' }, name); })));
+        }
+        return el('span', { class: 'mono' }, f.file || files[0] || '');
+      } });
+    columns.push({ key: 'line', label: 'Line' });
+    columns.push({ key: 'message', label: 'Message' });
+    if (hasCount) {
+      columns.push({ key: 'count', label: 'Count',
+        value: function (f) { return f.count != null ? f.count : (f.files ? f.files.length : 1); } });
+    }
+
+    var sectionEl = el('section', { class: 'section', id: id, 'aria-labelledby': id + '-h' },
+      el('div', { class: 'section-head' },
+        el('h2', { id: id + '-h' }, section.name || ('Section ' + (i + 1))),
+        findings.length ? el('div', { class: 'toolbar' }, el('label', null, 'Filter ', filter), count) : null),
+      host);
+    document.getElementById('sections').appendChild(sectionEl);
+    R.table(host, columns, findings, {
+      sortable: true, filterInput: filter, countEl: count, caption: section.name,
+      empty: 'No findings in this section.'
+    });
+  });
+
+  if (!sections.length) {
+    document.getElementById('sections').appendChild(el('p', { class: 'empty' }, 'The report has no sections.'));
+  }
+})();
+</script>
+</body>
+</html>

@@ -44,6 +44,8 @@ import picocli.CommandLine.Command;
         KeysCmd.class,
         CheckLinksCmd.class,
         PreviewCmd.class,
+        ReportCmd.class,
+        ProjectGraphCmd.class,
         HealthCmd.class,
         ProjectHealthCmd.class,
         ValidateProjectCmd.class,

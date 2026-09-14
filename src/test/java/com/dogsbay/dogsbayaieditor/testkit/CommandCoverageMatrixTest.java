@@ -153,6 +153,10 @@ class CommandCoverageMatrixTest {
         Map.entry("RenameProfileValueCommand", Tier.T1_FUNCTIONAL),
         Map.entry("SplitTopicCommand", Tier.T1_FUNCTIONAL),
 
+        // ── Structure and reports ────────────────────────────────────────
+        Map.entry("ProjectGraphCommand", Tier.T1_FUNCTIONAL),
+        Map.entry("RenderReportCommand", Tier.T1_FUNCTIONAL),
+
         // ── Author (data assertions; visuals covered in T2/T3) ───────────
         Map.entry("AuthorOutlineCommand", Tier.T1_FUNCTIONAL),
         Map.entry("AuthorInsertBlockCommand", Tier.T1_FUNCTIONAL),

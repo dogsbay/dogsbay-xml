@@ -166,10 +166,11 @@ public final class ChatAgentFactory {
             return "";
         }
         return "\n\n## Working in the DogsBay editor (DITA)\n"
-            + "- For anything across the whole project or a map — validating, auditing, "
-            + "or a bulk/uniform edit — use the project tools (validate_project, "
-            + "project_health, conref_audit, schematron_project) or write a script "
-            + "(code mode). Do NOT open or read every file individually.\n"
+            + "- " + com.dogsbay.agent.AgentGuidance.CHECKS + "\n"
+            + "- " + com.dogsbay.agent.AgentGuidance.STRUCTURE + "\n"
+            + "- " + com.dogsbay.agent.AgentGuidance.REPORTS + "\n"
+            + "- For a bulk or uniform edit across the project or a map, use the refactor "
+            + "tools or write a script (code mode). Do NOT open or read every file individually.\n"
             + "- Validate DITA with validate_document / validate_project (they resolve "
             + "the DITA catalog); the generic xml_validate can't find the DITA DTDs.\n"
             + "- Definition of done: before reporting a task complete, run project_health "

@@ -125,6 +125,12 @@ public class CommandRegistry {
         register(new CommandMeta("render-preview",
             "Render the styled DITA preview to HTML (key resolution + DITAVAL aware)",
             RenderPreviewCommand.class, false));
+        register(new CommandMeta("project-graph",
+            "How a project connects: maps, topics, keys and DITAVALs with typed edges, per deliverable",
+            ProjectGraphCommand.class, false));
+        register(new CommandMeta("render-report",
+            "Write a standalone HTML page from a read-only command's JSON and a template",
+            RenderReportCommand.class, false));
         register(new CommandMeta("health",
             "Project reuse-health report: broken refs, undefined/unused keys, orphan topics",
             HealthCommand.class, false));

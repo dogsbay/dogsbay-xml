@@ -64,9 +64,10 @@ final class HostedBrief {
         if (toolsInjected) {
             sb.append("- The MCP server \"dogsbay-editor\" gives you the editor's own tools. Prefer them to a shell: ")
               .append("they see unsaved buffers and are attributed and audited to your session.\n")
-              .append("- \"Validate\" a topic means all of: validate_document (DITA DTD via the bundled catalog), ")
-              .append("schematron_project or metadata_audit (the project's rules, e.g. required shortdesc), ")
-              .append("and check_links (references and keys). Report findings from all three.\n")
+              .append("- ").append(com.dogsbay.agent.AgentGuidance.CHECKS).append('\n')
+              // The brief rides in front of every first turn, so the structure and report
+              // guidance is the short form; the server's instructions carry the full text.
+              .append("- For project structure call project_graph; for a standalone HTML page, render_report.\n")
               .append("- Refactorings (rename_key, rename_file, retarget, keyify, …) are dry runs unless apply is set; ")
               .append("show the plan first.\n")
               .append("- Edits you make with set_document_content or replace_selection to a DITA document land as ")

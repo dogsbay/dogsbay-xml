@@ -83,6 +83,8 @@ public record CommandTargets(Scope scope, List<Path> files, Path root, boolean a
             case CreateProjectCommand c -> files(c.folderPath());
             // Writes a render artefact to a caller-chosen path; a plain read when there is none.
             case RenderPreviewCommand c -> c.output() == null || c.output().isBlank() ? NONE : files(path(c.output()));
+            // A report page is always written to the path the caller chose.
+            case RenderReportCommand c -> files(path(c.output()));
             // Moves the project root, which is the containment boundary: state, not a read.
             case OpenProjectCommand c -> new CommandTargets(Scope.FILES, List.of(), null, false);
             case EditMapCommand c -> files(path(c.map()));
@@ -137,6 +139,7 @@ public record CommandTargets(Scope scope, List<Path> files, Path root, boolean a
             case OpenDitaMapCommand c -> NONE;
             case ValidateProjectCommand c -> NONE;
             case ProjectHealthCommand c -> NONE;
+            case ProjectGraphCommand c -> NONE;
             case ConrefAuditCommand c -> NONE;
             case SchematronProjectCommand c -> NONE;
             case SchematronCommand c -> NONE;

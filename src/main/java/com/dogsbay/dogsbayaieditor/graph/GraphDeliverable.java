@@ -16,20 +16,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package com.dogsbay.dogsbayaieditor.commands.results;
+package com.dogsbay.dogsbayaieditor.graph;
 
-import com.dogsbay.dogsbayaieditor.ditaproject.BatchResult;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Validation result for one DITA-project deliverable: its name, root map, and the
- * {@link BatchResult} of validating that deliverable's publication set.
+ * One deliverable in a {@link ProjectGraph}.
  *
- * @param name       the deliverable name
- * @param map        the deliverable's root map (absolute path)
- * @param validation per-file validation of the map's publication set
+ * @param name     deliverable name
+ * @param map      project-relative root map
+ * @param ditavals project-relative DITAVALs of its profile (possibly empty)
+ * @param ships    file node ids in its narrow publication set
  */
-public record DeliverableValidation(
-    String name,
-    String map,
-    BatchResult<FileValidation> validation
-) {}
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record GraphDeliverable(String name, String map, List<String> ditavals,
+                               List<String> ships) {
+}

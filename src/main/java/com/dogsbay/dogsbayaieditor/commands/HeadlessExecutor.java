@@ -82,6 +82,8 @@ public class HeadlessExecutor implements CommandExecutor {
             case ResolveKeyCommand c -> executeResolveKey(c);
             case CheckLinksCommand c -> executeCheckLinks(c);
             case RenderPreviewCommand c -> executeRenderPreview(c);
+            case RenderReportCommand c -> executeRenderReport(c);
+            case ProjectGraphCommand c -> executeProjectGraph(c);
             case HealthCommand c -> executeHealth(c);
             case ValidateProjectCommand c -> executeValidateProject(c);
             case ProjectHealthCommand c -> executeProjectHealth(c);
@@ -289,6 +291,129 @@ public class HeadlessExecutor implements CommandExecutor {
         return broken;
     }
 
+    /**
+     * The project graph, with the audits that judge content rather than structure
+     * folded into its issues when asked: a relationship map that draws an invalid
+     * topic as healthy is the failure this command exists to prevent.
+     */
+    private com.dogsbay.dogsbayaieditor.graph.ProjectGraph executeProjectGraph(ProjectGraphCommand cmd)
+            throws CommandException {
+        java.nio.file.Path root = existingDir(cmd.root(), "root").toPath().toAbsolutePath().normalize();
+        com.dogsbay.dogsbayaieditor.graph.ProjectGraph graph;
+        try {
+            graph = com.dogsbay.dogsbayaieditor.graph.ProjectGraphBuilder.build(root, cmd.map(), cmd.deliverable());
+        } catch (IllegalArgumentException e) {
+            throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT, e.getMessage());
+        } catch (java.io.IOException e) {
+            throw new CommandException(CommandException.ErrorCode.INTERNAL_ERROR,
+                    "Could not build the project graph: " + e.getMessage(), e);
+        }
+        if (!cmd.checks()) {
+            return graph;
+        }
+
+        List<com.dogsbay.dogsbayaieditor.graph.GraphIssue> issues = new ArrayList<>(graph.issues());
+
+        // DTD validation of every shipped map and topic, once each.
+        List<java.nio.file.Path> shipped = graph.nodes().stream()
+                .filter(n -> ("map".equals(n.kind()) || "topic".equals(n.kind())) && !Boolean.TRUE.equals(n.missing())
+                        && n.ships() != null && !n.ships().isEmpty())
+                .map(n -> root.resolve(n.id()))
+                .toList();
+        for (java.nio.file.Path file : shipped) {
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (ValidationError e : validateOne(file, List.of())) {
+                if (seen.add(e.line() + ":" + e.column() + ":" + e.message())) {
+                    issues.add(new com.dogsbay.dogsbayaieditor.graph.GraphIssue(
+                            "warning".equals(e.severity()) ? "warning" : "error", "invalid-dtd",
+                            relativeTo(root, file.toString()), e.line() > 0 ? e.line() : null, e.message()));
+                }
+            }
+        }
+
+        // Element ids and conref push are judged against one key space: the map asked for, else the only deliverable's.
+        // The audits resolve a relative map against the working directory; the graph resolved it against root.
+        String rootMap = (cmd.map() == null || cmd.map().isBlank()) ? null
+                : root.resolve(cmd.map()).toString();
+        if (rootMap == null && graph.deliverables().size() == 1) {
+            rootMap = root.resolve(graph.deliverables().get(0).map()).toString();
+        }
+        for (BrokenRef ref : executeConrefAudit(new ConrefAuditCommand(root.toString(), rootMap))) {
+            issues.add(new com.dogsbay.dogsbayaieditor.graph.GraphIssue("error", "broken-element-id",
+                    relativeTo(root, ref.source()), ref.line() > 0 ? ref.line() : null,
+                    ref.attribute() + "=\"" + ref.value() + "\": " + ref.reason()));
+        }
+        for (var issue : executeConrefPushAudit(new ConrefPushAuditCommand(root.toString(), null, rootMap)).issues()) {
+            issues.add(new com.dogsbay.dogsbayaieditor.graph.GraphIssue("warning", "conref-push",
+                    relativeTo(root, issue.file()), issue.line() > 0 ? issue.line() : null,
+                    "<" + issue.element() + ">: " + issue.problem()));
+        }
+
+        return new com.dogsbay.dogsbayaieditor.graph.ProjectGraph(graph.generated(), graph.root(), graph.scope(),
+                graph.deliverables(), graph.nodes(), graph.edges(), issues);
+    }
+
+    /** A project-relative path with forward slashes when {@code path} is under {@code root}; else as given. */
+    private static String relativeTo(java.nio.file.Path root, String path) {
+        if (path == null) {
+            return null;
+        }
+        java.nio.file.Path p = java.nio.file.Path.of(path).toAbsolutePath().normalize();
+        return p.startsWith(root) ? root.relativize(p).toString().replace('\\', '/') : path;
+    }
+
+    /** Fill a report template with the command's JSON and write the page. */
+    private com.dogsbay.dogsbayaieditor.commands.results.ReportResult executeRenderReport(RenderReportCommand cmd)
+            throws CommandException {
+        java.nio.file.Path root = (cmd.root() == null || cmd.root().isBlank())
+                ? null : existingDir(cmd.root(), "root").toPath();
+        if (cmd.output() == null || cmd.output().isBlank()) {
+            throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                    "output is required: a report is written to a file");
+        }
+        if (cmd.data() == null || cmd.data().isBlank()) {
+            throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                    "No data to render: name a source (a read-only tool such as project_graph) or pass data");
+        }
+        if (cmd.template() == null || cmd.template().isBlank()) {
+            throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                    "Name a template: one of " + com.dogsbay.dogsbayaieditor.reports.ReportRenderer.builtInTemplates()
+                    + ", or a path such as .dogsbay/reports/mine.html");
+        }
+        java.nio.file.Path out = java.nio.file.Path.of(cmd.output());
+        if (!out.isAbsolute() && root != null) {
+            out = root.resolve(out);
+        }
+        out = out.toAbsolutePath().normalize();
+
+        java.util.Map<String, String> meta = new java.util.LinkedHashMap<>();
+        meta.put("generated", java.time.Instant.now().toString());
+        try {
+            meta.put("editorVersion", com.dogsbay.dogsbayaieditor.Identity.getIdentity().getVersion());
+        } catch (RuntimeException | LinkageError noIdentity) {
+            // headless runs without the editor identity still render
+        }
+        if (cmd.source() != null) {
+            meta.put("source", cmd.source());
+        }
+
+        String html;
+        try {
+            String template = com.dogsbay.dogsbayaieditor.reports.ReportRenderer.loadTemplate(cmd.template(), root);
+            html = com.dogsbay.dogsbayaieditor.reports.ReportRenderer.render(template, cmd.data(), meta);
+        } catch (IllegalArgumentException e) {
+            throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT, e.getMessage());
+        }
+        try {
+            com.dogsbay.dogsbayaieditor.reports.ReportRenderer.write(out, html);
+        } catch (Exception e) {
+            throw new CommandException(CommandException.ErrorCode.INTERNAL_ERROR,
+                    "Cannot write " + out + ": " + e.getMessage(), e);
+        }
+        return new com.dogsbay.dogsbayaieditor.commands.results.ReportResult(out.toString(), cmd.template(),
+                cmd.source(), html.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+    }
+
     private PreviewRenderResult executeRenderPreview(RenderPreviewCommand cmd)
             throws CommandException {
         java.io.File file = existingFile(cmd.file(), "file");
@@ -444,9 +569,10 @@ public class HeadlessExecutor implements CommandExecutor {
     /**
      * Validate every deliverable of a project: resolve the DITA project
      * (project.&#123;xml,json,yaml&#125; or a synthesized default), and validate
-     * each deliverable's map publication set. One result per deliverable.
+     * each deliverable's map publication set. Counts per deliverable; each file is
+     * validated once however many deliverables ship it, and each finding lists them.
      */
-    private List<com.dogsbay.dogsbayaieditor.commands.results.DeliverableValidation>
+    private com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport
             executeValidateDeliverables(ValidateDeliverablesCommand cmd) throws CommandException {
         java.nio.file.Path root = existingDir(cmd.root(), "root").toPath();
 
@@ -465,14 +591,63 @@ public class HeadlessExecutor implements CommandExecutor {
                     "Failed to load project context: " + e.getMessage(), e);
         }
 
-        List<com.dogsbay.dogsbayaieditor.commands.results.DeliverableValidation> out =
+        java.util.Map<java.nio.file.Path, List<ValidationError>> errorsByFile = new java.util.HashMap<>();
+        java.util.Map<java.nio.file.Path, java.util.LinkedHashSet<String>> failingIn = new java.util.LinkedHashMap<>();
+        List<com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport.Deliverable> summaries =
                 new ArrayList<>();
         for (com.dogsbay.dogsbayaieditor.ditaproject.Deliverable d : ctx.deliverables()) {
             List<java.nio.file.Path> files = FileSet.crawlMap(root, d.map());
-            out.add(new com.dogsbay.dogsbayaieditor.commands.results.DeliverableValidation(
-                    d.name(), d.map().toString(), validateFiles(files, catalogs)));
+            int passed = 0;
+            for (java.nio.file.Path f : files) {
+                List<ValidationError> errors = errorsByFile.computeIfAbsent(f, p -> validateOne(p, catalogs));
+                if (errors.isEmpty()) {
+                    passed++;
+                } else {
+                    failingIn.computeIfAbsent(f, p -> new java.util.LinkedHashSet<>()).add(d.name());
+                }
+            }
+            summaries.add(new com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport.Deliverable(
+                    d.name(), d.map().toString(), files.size(), passed, files.size() - passed));
         }
-        return out;
+
+        List<com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport.Finding> findings = new ArrayList<>();
+        for (var entry : failingIn.entrySet()) {
+            List<String> deliverables = List.copyOf(entry.getValue());
+            // The parser can report one fatal error twice (the handler, then the thrown exception).
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (ValidationError e : errorsByFile.get(entry.getKey())) {
+                if (!seen.add(e.line() + ":" + e.column() + ":" + e.message())) {
+                    continue;
+                }
+                findings.add(new com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport.Finding(
+                        entry.getKey().toString(), e.line(), e.column(), e.severity(), e.message(), deliverables));
+            }
+        }
+        int cap = 200;
+        int truncated = Math.max(0, findings.size() - cap);
+        return new com.dogsbay.dogsbayaieditor.commands.results.DeliverablesReport(summaries,
+                truncated > 0 ? findings.subList(0, cap) : findings, truncated);
+    }
+
+    /**
+     * One file's validation errors, empty when it validates. Messages that spell
+     * out a whole content model are shortened: a report over many files repeated
+     * the same enumeration in every finding.
+     */
+    private static List<ValidationError> validateOne(java.nio.file.Path f, List<java.nio.file.Path> catalogs) {
+        ValidationResult vr;
+        try {
+            vr = DocumentValidator.validate(f, null, catalogs);
+        } catch (DocumentValidator.ValidationSetupException e) {
+            return List.of(new ValidationError(-1, -1, "error", e.getMessage(), "validator"));
+        }
+        if (vr.valid()) {
+            return List.of();
+        }
+        return vr.errors().stream()
+                .map(e -> new ValidationError(e.line(), e.column(), e.severity(),
+                        com.dogsbay.dogsbayaieditor.validate.ValidationMessages.compact(e.message()), e.source()))
+                .toList();
     }
 
     /**
@@ -757,18 +932,11 @@ public class HeadlessExecutor implements CommandExecutor {
         List<FileValidation> failures = new ArrayList<>();
         int passed = 0;
         for (java.nio.file.Path f : files) {
-            ValidationResult vr;
-            try {
-                vr = DocumentValidator.validate(f, null, catalogs);
-            } catch (DocumentValidator.ValidationSetupException e) {
-                failures.add(new FileValidation(f.toString(), false,
-                        List.of(new ValidationError(-1, -1, "error", e.getMessage(), "validator"))));
-                continue;
-            }
-            if (vr.valid()) {
+            List<ValidationError> errors = validateOne(f, catalogs);
+            if (errors.isEmpty()) {
                 passed++;
             } else {
-                failures.add(new FileValidation(f.toString(), false, vr.errors()));
+                failures.add(new FileValidation(f.toString(), false, errors));
             }
         }
         return BatchResult.capped(files.size(), passed, files.size() - passed, failures, 200);
@@ -854,40 +1022,144 @@ public class HeadlessExecutor implements CommandExecutor {
      */
     private ProjectHealthReport executeProjectHealth(ProjectHealthCommand cmd)
             throws CommandException {
-        HealthReport reuse = executeHealth(new HealthCommand(cmd.root(), cmd.rootMap()));
-
+        // A relative map or schema is relative to the project, not to wherever the process runs:
+        // an agent passes "guide.ditamap" with the editor's working directory somewhere else.
+        java.nio.file.Path projectRoot = existingDir(cmd.root(), "root").toPath();
+        if (cmd.rootMap() != null && !cmd.rootMap().isBlank() && !java.nio.file.Path.of(cmd.rootMap()).isAbsolute()
+                || cmd.schematron() != null && !cmd.schematron().isBlank()
+                        && !java.nio.file.Path.of(cmd.schematron()).isAbsolute()) {
+            cmd = new ProjectHealthCommand(cmd.root(), againstRoot(projectRoot, cmd.rootMap()),
+                    againstRoot(projectRoot, cmd.schematron()), cmd.include(), cmd.severity(), cmd.groupRules());
+        }
+        if (!cmd.unknownLegs().isEmpty()) {
+            throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                    "Unknown project_health check(s) " + cmd.unknownLegs() + "; choose from "
+                    + ProjectHealthCommand.LEGS);
+        }
         java.nio.file.Path root = existingDir(cmd.root(), "root").toPath();
-        List<java.nio.file.Path> files;
-        try {
-            if (cmd.rootMap() != null && !cmd.rootMap().isEmpty()) {
-                java.nio.file.Path rm = java.nio.file.Path.of(cmd.rootMap());
-                files = FileSet.crawlMap(root, rm.isAbsolute() ? rm : root.resolve(cmd.rootMap()));
-            } else {
-                files = FileSet.underRoot(root);
+        List<String> checked = new ArrayList<>();
+        // Grouping needs every finding: counting a capped list would undercount the rule.
+        int cap = cmd.groupRules() ? -1 : 200;
+
+        HealthReport reuse = null;
+        if (cmd.includes("reuse")) {
+            reuse = executeHealth(new HealthCommand(cmd.root(), cmd.rootMap()));
+            if (cmd.errorsOnly()) {
+                // Unused keys and orphans are worth knowing, not errors.
+                reuse = new HealthReport(reuse.brokenReferences(), reuse.undefinedKeys(), List.of(), List.of());
             }
-        } catch (Exception e) {
-            throw new CommandException(CommandException.ErrorCode.INTERNAL_ERROR,
-                    "Failed to resolve health scope: " + e.getMessage(), e);
+            checked.add("reuse");
         }
 
-        java.util.List<BrokenRef> brokenElementIds =
-                executeConrefAudit(new ConrefAuditCommand(cmd.root(), cmd.rootMap()));
+        List<java.nio.file.Path> files = List.of();
+        if (cmd.includes("validation") || cmd.includes("proposals")) {
+            try {
+                if (cmd.rootMap() != null && !cmd.rootMap().isEmpty()) {
+                    java.nio.file.Path rm = java.nio.file.Path.of(cmd.rootMap());
+                    files = FileSet.crawlMap(root, rm.isAbsolute() ? rm : root.resolve(cmd.rootMap()));
+                } else {
+                    files = FileSet.underRoot(root);
+                }
+            } catch (Exception e) {
+                throw new CommandException(CommandException.ErrorCode.INTERNAL_ERROR,
+                        "Failed to resolve health scope: " + e.getMessage(), e);
+            }
+        }
+
+        BatchResult<FileValidation> validation = null;
+        if (cmd.includes("validation")) {
+            validation = validateFiles(files, List.of());
+            if (cmd.errorsOnly()) {
+                validation = errorLevelOnly(validation);
+            }
+            checked.add("validation");
+        }
+
+        java.util.List<BrokenRef> brokenElementIds = null;
+        if (cmd.includes("elementIds")) {
+            brokenElementIds = executeConrefAudit(new ConrefAuditCommand(cmd.root(), cmd.rootMap()));
+            checked.add("elementIds");
+        }
 
         // Metadata policy leg: a project with a required-metadata policy can't be
         // "clean" while required metadata is missing (empty/clean when no policy).
         String metaScope = (cmd.rootMap() != null && !cmd.rootMap().isEmpty())
                 ? "map:" + cmd.rootMap() : "root";
-        var metadata = executeMetadataAudit(new MetadataAuditCommand(cmd.root(), metaScope, null));
+        BatchResult<com.dogsbay.dogsbayaieditor.commands.results.MetadataFinding> metadata = null;
+        List<com.dogsbay.dogsbayaieditor.commands.results.RuleGroup> metadataRules = null;
+        if (cmd.includes("metadata")) {
+            metadata = executeMetadataAudit(new MetadataAuditCommand(cmd.root(), metaScope, null), cap);
+            if (cmd.errorsOnly()) {
+                metadata = keepFindings(metadata, f -> "error".equals(f.severity()));
+            }
+            if (cmd.groupRules()) {
+                metadataRules = com.dogsbay.dogsbayaieditor.commands.results.RuleGroup.ofMetadata(metadata.findings());
+                metadata = keepFindings(metadata, f -> false);
+            }
+            checked.add("metadata");
+        }
 
         // House rules (shortdesc required, no hardcoded product name, …) are
         // Schematron, so the gate can only see them when given the schema.
-        var schematron = (cmd.schematron() != null && !cmd.schematron().isBlank())
-                ? executeSchematronProject(
-                        new SchematronProjectCommand(cmd.root(), metaScope, cmd.schematron()))
-                : null;
+        BatchResult<SchematronFinding> schematron = null;
+        List<com.dogsbay.dogsbayaieditor.commands.results.RuleGroup> schematronRules = null;
+        if (cmd.includes("schematron") && cmd.schematron() != null && !cmd.schematron().isBlank()) {
+            java.io.File sch = existingFile(cmd.schematron(), "schematron");
+            List<java.nio.file.Path> scoped;
+            try {
+                scoped = FileSet.resolve(root, metaScope);
+            } catch (Exception e) {
+                throw new CommandException(CommandException.ErrorCode.INTERNAL_ERROR,
+                        "Failed to resolve scope '" + metaScope + "': " + e.getMessage(), e);
+            }
+            schematron = runSchematron(sch, scoped, cap);
+            if (cmd.errorsOnly()) {
+                schematron = keepFindings(schematron, ProjectHealthReport::blocks);
+            }
+            if (cmd.groupRules()) {
+                schematronRules = com.dogsbay.dogsbayaieditor.commands.results.RuleGroup.ofSchematron(
+                        schematron.findings());
+                schematron = keepFindings(schematron, f -> false);
+            }
+            checked.add("schematron");
+        }
 
-        return new ProjectHealthReport(reuse, validateFiles(files, List.of()),
-                brokenElementIds, metadata, openProposals(files), schematron);
+        List<com.dogsbay.dogsbayaieditor.commands.results.OpenProposals> proposals = null;
+        if (cmd.includes("proposals")) {
+            proposals = openProposals(files);
+            checked.add("proposals");
+        }
+
+        return new ProjectHealthReport(reuse, validation, brokenElementIds, metadata, proposals,
+                schematron, metadataRules, schematronRules, checked);
+    }
+
+    /** {@code path} resolved against {@code root} when it is relative; null and blank stay as they are. */
+    private static String againstRoot(java.nio.file.Path root, String path) {
+        if (path == null || path.isBlank() || java.nio.file.Path.of(path).isAbsolute()) {
+            return path;
+        }
+        return root.resolve(path).toString();
+    }
+
+    /** The same counts with only the findings {@code keep} accepts; the truncation note is dropped with them. */
+    private static <T> BatchResult<T> keepFindings(BatchResult<T> result, java.util.function.Predicate<T> keep) {
+        List<T> kept = result.findings().stream().filter(keep).toList();
+        return new BatchResult<>(result.total(), result.passed(), result.failed(), kept,
+                kept.size() == result.findings().size() ? result.truncated() : 0);
+    }
+
+    /** Validation reduced to error-level problems: warnings dropped, files left with none no longer failing. */
+    private static BatchResult<FileValidation> errorLevelOnly(BatchResult<FileValidation> result) {
+        List<FileValidation> kept = new ArrayList<>();
+        for (FileValidation fv : result.findings()) {
+            List<ValidationError> errors = fv.errors().stream().filter(e -> "error".equals(e.severity())).toList();
+            if (!errors.isEmpty()) {
+                kept.add(new FileValidation(fv.file(), false, errors));
+            }
+        }
+        int failed = kept.size() + result.truncated();
+        return new BatchResult<>(result.total(), result.total() - failed, failed, kept, result.truncated());
     }
 
     /**
@@ -1001,6 +1273,12 @@ public class HeadlessExecutor implements CommandExecutor {
      */
     private BatchResult<SchematronFinding> runSchematron(java.io.File sch,
             List<java.nio.file.Path> files) throws CommandException {
+        return runSchematron(sch, files, 200);
+    }
+
+    /** As {@link #runSchematron(java.io.File, List)}, keeping at most {@code cap} findings (negative: all). */
+    private BatchResult<SchematronFinding> runSchematron(java.io.File sch,
+            List<java.nio.file.Path> files, int cap) throws CommandException {
 
         // SchXslt compiles the schema to XSLT 2.0, so pin Saxon explicitly for this
         // run rather than relying on whatever the ambient factory happens to be.
@@ -1071,7 +1349,7 @@ public class HeadlessExecutor implements CommandExecutor {
                 passed++;
             }
         }
-        return BatchResult.capped(files.size(), passed, files.size() - passed, findings, 200);
+        return BatchResult.capped(files.size(), passed, files.size() - passed, findings, cap);
         } finally {
             if (prevTransformerFactory == null) {
                 System.clearProperty("javax.xml.transform.TransformerFactory");
@@ -1266,6 +1544,12 @@ public class HeadlessExecutor implements CommandExecutor {
 
     private BatchResult<com.dogsbay.dogsbayaieditor.commands.results.MetadataFinding>
             executeMetadataAudit(MetadataAuditCommand cmd) throws CommandException {
+        return executeMetadataAudit(cmd, 200);
+    }
+
+    /** The metadata audit keeping at most {@code cap} findings (negative: all). */
+    private BatchResult<com.dogsbay.dogsbayaieditor.commands.results.MetadataFinding>
+            executeMetadataAudit(MetadataAuditCommand cmd, int cap) throws CommandException {
         java.io.File root = existingDir(cmd.root(), "root");
         com.dogsbay.dogsbayaieditor.links.metadata.MetadataPolicy policy =
                 resolveMetadataPolicy(root, cmd.policy());
@@ -1307,7 +1591,7 @@ public class HeadlessExecutor implements CommandExecutor {
                 passed++;
             }
         }
-        return BatchResult.capped(considered, passed, considered - passed, findings, 200);
+        return BatchResult.capped(considered, passed, considered - passed, findings, cap);
     }
 
     /**

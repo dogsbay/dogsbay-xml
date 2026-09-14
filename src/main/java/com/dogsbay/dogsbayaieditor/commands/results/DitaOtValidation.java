@@ -25,7 +25,7 @@ import com.dogsbay.xml.dita.DitaOtMessage;
 /**
  * Deep-validation result for one DITA-project deliverable: the diagnostics
  * DITA-OT's {@code validate} transtype produced for that deliverable's map
- * (optionally DITAVAL-filtered). Unlike the static {@link DeliverableValidation},
+ * (optionally DITAVAL-filtered). Unlike the static {@link DeliverablesReport},
  * this exercises the real preprocessing pipeline.
  *
  * @param name     the deliverable name

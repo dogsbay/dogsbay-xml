@@ -59,11 +59,21 @@ class ProjectHealthCmd implements Callable<Integer> {
                     + "detail is printed by default.")
     private boolean summaryOnly;
 
+    @Option(names = "--include", split = ",",
+            description = "Checks to run, comma-separated (default all): reuse, validation, "
+                    + "elementIds, metadata, schematron, proposals")
+    private java.util.List<String> include;
+
+    @Option(names = "--severity",
+            description = "'error' reports only what blocks a clean result (no unused keys, "
+                    + "orphans, warnings or recommended metadata)")
+    private String severity;
+
     @Override
     public Integer call() throws Exception {
         var executor = new HeadlessExecutor();
         ProjectHealthReport r = executor.execute(
-                new ProjectHealthCommand(root, rootMap, schematron));
+                new ProjectHealthCommand(root, rootMap, schematron, include, severity, false));
 
         if (!summaryOnly && !r.openProposals().isEmpty()) {
             System.out.println("Open review proposals (" + r.openProposals().size() + " file(s)):");
