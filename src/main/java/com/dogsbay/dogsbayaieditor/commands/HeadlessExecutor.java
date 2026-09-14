@@ -338,14 +338,28 @@ public class HeadlessExecutor implements CommandExecutor {
         if (rootMap == null && graph.deliverables().size() == 1) {
             rootMap = root.resolve(graph.deliverables().get(0).map()).toString();
         }
+        // The audits scan the project; a graph limited to a map or deliverable reports only its own files.
+        boolean scoped = !"all".equals(graph.scope());
+        java.util.Set<String> inGraph = graph.nodes().stream()
+                .map(com.dogsbay.dogsbayaieditor.graph.GraphNode::id)
+                .collect(java.util.stream.Collectors.toSet());
         for (BrokenRef ref : executeConrefAudit(new ConrefAuditCommand(root.toString(), rootMap))) {
+            String file = relativeTo(root, ref.source());
+            if (scoped && !inGraph.contains(file)) {
+                continue;
+            }
             issues.add(new com.dogsbay.dogsbayaieditor.graph.GraphIssue("error", "broken-element-id",
-                    relativeTo(root, ref.source()), ref.line() > 0 ? ref.line() : null,
+                    file, ref.line() > 0 ? ref.line() : null,
                     ref.attribute() + "=\"" + ref.value() + "\": " + ref.reason()));
         }
-        for (var issue : executeConrefPushAudit(new ConrefPushAuditCommand(root.toString(), null, rootMap)).issues()) {
+        String pushScope = rootMap == null ? null : "map:" + rootMap;
+        for (var issue : executeConrefPushAudit(new ConrefPushAuditCommand(root.toString(), pushScope, rootMap)).issues()) {
+            String file = relativeTo(root, issue.file());
+            if (scoped && !inGraph.contains(file)) {
+                continue;
+            }
             issues.add(new com.dogsbay.dogsbayaieditor.graph.GraphIssue("warning", "conref-push",
-                    relativeTo(root, issue.file()), issue.line() > 0 ? issue.line() : null,
+                    file, issue.line() > 0 ? issue.line() : null,
                     "<" + issue.element() + ">: " + issue.problem()));
         }
 
@@ -1036,10 +1050,17 @@ public class HeadlessExecutor implements CommandExecutor {
                     "Unknown project_health check(s) " + cmd.unknownLegs() + "; choose from "
                     + ProjectHealthCommand.LEGS);
         }
+        // Asking for house rules without a schema would check nothing and still say clean.
+        if (cmd.include() != null && cmd.include().contains("schematron")
+                && (cmd.schematron() == null || cmd.schematron().isBlank())) {
+            throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                    "The schematron check needs a schema: pass schematron=<file.sch>");
+        }
         java.nio.file.Path root = existingDir(cmd.root(), "root").toPath();
         List<String> checked = new ArrayList<>();
-        // Grouping needs every finding: counting a capped list would undercount the rule.
-        int cap = cmd.groupRules() ? -1 : 200;
+        // Grouping needs every finding (a capped list undercounts the rule), and so does filtering
+        // by severity: capping first could keep only warnings, drop them, and call the project clean.
+        int cap = (cmd.groupRules() || cmd.errorsOnly()) ? -1 : 200;
 
         HealthReport reuse = null;
         if (cmd.includes("reuse")) {
@@ -1091,6 +1112,9 @@ public class HeadlessExecutor implements CommandExecutor {
             metadata = executeMetadataAudit(new MetadataAuditCommand(cmd.root(), metaScope, null), cap);
             if (cmd.errorsOnly()) {
                 metadata = keepFindings(metadata, f -> "error".equals(f.severity()));
+                if (!cmd.groupRules()) {
+                    metadata = capFindings(metadata, 200);
+                }
             }
             if (cmd.groupRules()) {
                 metadataRules = com.dogsbay.dogsbayaieditor.commands.results.RuleGroup.ofMetadata(metadata.findings());
@@ -1115,6 +1139,9 @@ public class HeadlessExecutor implements CommandExecutor {
             schematron = runSchematron(sch, scoped, cap);
             if (cmd.errorsOnly()) {
                 schematron = keepFindings(schematron, ProjectHealthReport::blocks);
+                if (!cmd.groupRules()) {
+                    schematron = capFindings(schematron, 200);
+                }
             }
             if (cmd.groupRules()) {
                 schematronRules = com.dogsbay.dogsbayaieditor.commands.results.RuleGroup.ofSchematron(
@@ -1140,6 +1167,15 @@ public class HeadlessExecutor implements CommandExecutor {
             return path;
         }
         return root.resolve(path).toString();
+    }
+
+    /** At most {@code cap} findings, recording how many were left out. */
+    private static <T> BatchResult<T> capFindings(BatchResult<T> result, int cap) {
+        if (result.findings().size() <= cap) {
+            return result;
+        }
+        return new BatchResult<>(result.total(), result.passed(), result.failed(),
+                result.findings().subList(0, cap), result.truncated() + result.findings().size() - cap);
     }
 
     /** The same counts with only the findings {@code keep} accepts; the truncation note is dropped with them. */

@@ -72,6 +72,22 @@ class McpServerSessionTest {
     }
 
     @Test
+    void everyToolTheGuidanceNamesExists() {
+        // Guidance that names a tool the server does not have sends agents after nothing.
+        java.util.Set<String> tools = server.getTools().stream().map(McpServer.McpTool::name)
+                .collect(java.util.stream.Collectors.toSet());
+        String guidance = com.dogsbay.agent.AgentGuidance.mcpInstructions();
+        java.util.regex.Matcher named = java.util.regex.Pattern.compile("\\b[a-z]+(?:_[a-z]+)+\\b").matcher(guidance);
+        java.util.List<String> missing = new java.util.ArrayList<>();
+        while (named.find()) {
+            if (!tools.contains(named.group())) {
+                missing.add(named.group());
+            }
+        }
+        assertThat(missing).isEmpty();
+    }
+
+    @Test
     void toolCallsEchoingTheHeaderRunUnderThatSession() {
         Headers out = new Headers();
         request(INIT, new Headers(), out, Optional.empty());

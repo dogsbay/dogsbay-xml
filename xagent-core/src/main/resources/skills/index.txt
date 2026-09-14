@@ -16,3 +16,4 @@ dita-branch-filtering
 dita-index
 dita-glossary
 dita-conref-push
+dita-project-graph

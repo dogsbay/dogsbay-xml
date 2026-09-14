@@ -205,6 +205,15 @@ class WriteGateTest {
     }
 
     @Test
+    void aReportPageOutsideTheProjectIsRefused() {
+        AgentSession mcp = agent(SessionKind.EXTERNAL_MCP, "c");
+        // Relative to the project root, as the executor writes it: this climbs out.
+        assertThatThrownBy(() -> gate.check(mcp,
+                new RenderReportCommand(root.toString(), "health", "../outside.html", "{}", null)))
+                .hasMessageContaining("outside the project");
+    }
+
+    @Test
     void renderPreviewIsAWriteOnlyWhenItHasAnOutput() throws Exception {
         AgentSession mcp = agent(SessionKind.EXTERNAL_MCP, "c");
         gate.check(mcp, new RenderPreviewCommand(topic.toString(), null, null, null));

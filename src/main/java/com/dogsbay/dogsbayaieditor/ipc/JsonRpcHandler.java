@@ -177,6 +177,14 @@ public class JsonRpcHandler {
                 String template = optionalString(params, "template");
                 String data = optionalString(params, "data");
                 String sourceLabel = null;
+                if (data != null && optionalString(params, "source") != null) {
+                    // Data produced earlier by a source: pick its template and record it, as a live run would.
+                    String named = optionalString(params, "source").trim().replace('_', '-');
+                    if (template == null) {
+                        template = defaultTemplateFor(named);
+                    }
+                    sourceLabel = named + " " + mapper.createObjectNode().put("root", root == null ? "" : root);
+                }
                 if (data == null) {
                     // Run the source under the same session, so the page shows exactly what the tool returns.
                     String source = optionalString(params, "source");
@@ -188,6 +196,16 @@ public class JsonRpcHandler {
                     if (!isReadOnly(sourceMethod)) {
                         throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
                                 "A report's source must be a read-only tool; '" + source + "' is not one");
+                    }
+                    if (template == null) {
+                        template = defaultTemplateFor(sourceMethod);
+                    }
+                    if (template == null) {
+                        // Refuse before running the source over the whole project for nothing.
+                        throw new CommandException(CommandException.ErrorCode.INVALID_ARGUMENT,
+                                "No built-in template shows " + source + "; name one of "
+                                + com.dogsbay.dogsbayaieditor.reports.ReportRenderer.builtInTemplates()
+                                + " or a project template path such as .dogsbay/reports/mine.html");
                     }
                     ObjectNode args = sourceArgs(params.get("args"));
                     if (root != null && !args.has("root")) {
@@ -201,9 +219,6 @@ public class JsonRpcHandler {
                                 "Could not serialise the " + sourceMethod + " result: " + e.getMessage(), e);
                     }
                     sourceLabel = sourceMethod + " " + args;
-                    if (template == null) {
-                        template = defaultTemplateFor(sourceMethod);
-                    }
                 }
                 yield executor.execute(new RenderReportCommand(root, template, output, data, sourceLabel));
             }

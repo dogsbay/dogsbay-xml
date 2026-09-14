@@ -238,6 +238,42 @@ class ProjectHealthCommandTest {
     }
 
     @Test
+    void anErrorPastTheFirstTwoHundredWarningsStillBlocks(@TempDir Path dir) throws Exception {
+        // Capping before filtering kept 200 warnings, dropped them all, and reported clean.
+        for (int i = 0; i < 210; i++) {
+            write(dir, String.format("a%03d.xml", i), "<topic id=\"t\"><title>T</title><body/></topic>");
+        }
+        write(dir, "z.xml", "<topic id=\"bad\"><title>T</title><shortdesc>S</shortdesc><body/></topic>");
+        write(dir, "house.sch", """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <schema xmlns="http://purl.oclc.org/dsdl/schematron">
+              <pattern id="p">
+                <rule context="topic">
+                  <assert test="shortdesc" role="warning">A shortdesc is recommended.</assert>
+                  <report test="@id = 'bad'">The id is not allowed.</report>
+                </rule>
+              </pattern>
+            </schema>
+            """);
+
+        ProjectHealthReport r = executor.execute(new ProjectHealthCommand(
+            dir.toString(), null, dir.resolve("house.sch").toString(), null, "error", false));
+
+        assertThat(r.schematron().findings()).extracting("message").containsExactly("The id is not allowed.");
+        assertThat(r.isClean()).isFalse();
+    }
+
+    @Test
+    void theSchematronCheckWithoutASchemaIsRefused(@TempDir Path dir) throws Exception {
+        write(dir, "ok.xml", "<root/>");
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> executor.execute(new ProjectHealthCommand(
+                dir.toString(), null, null, java.util.List.of("schematron"), null, true)))
+            .isInstanceOf(CommandException.class)
+            .hasMessageContaining("needs a schema");
+    }
+
+    @Test
     void anUnknownLegIsRefusedNamingTheRealOnes(@TempDir Path dir) throws Exception {
         write(dir, "ok.xml", "<root/>");
 

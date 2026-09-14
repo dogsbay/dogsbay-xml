@@ -142,18 +142,38 @@
       var k = 70; // ideal edge length
       var i, j, a, b, dx, dy, d2, d, f;
       for (i = 0; i < count; i++) { active[i].fx = 0; active[i].fy = 0; }
-      // Repulsion (all pairs; the caller caps total work).
+      // Repulsion between pairs closer than 500 units. Nodes are bucketed into 500-unit cells, so
+      // each node is compared with its own and neighbouring cells only: the same forces as all
+      // pairs with the cutoff, without the quadratic cost on a large project.
+      function repel(p, q) {
+        dx = p.x - q.x; dy = p.y - q.y;
+        d2 = dx * dx + dy * dy;
+        if (d2 < 0.01) { dx = (Math.random() - 0.5); dy = (Math.random() - 0.5); d2 = 0.5; }
+        if (d2 > 250000) return;
+        f = (k * k) / d2;
+        p.fx += dx * f; p.fy += dy * f;
+        q.fx -= dx * f; q.fy -= dy * f;
+      }
+      var CELL = 500, grid = new Map();
       for (i = 0; i < count; i++) {
         a = active[i];
-        for (j = i + 1; j < count; j++) {
-          b = active[j];
-          dx = a.x - b.x; dy = a.y - b.y;
-          d2 = dx * dx + dy * dy;
-          if (d2 < 0.01) { dx = (Math.random() - 0.5); dy = (Math.random() - 0.5); d2 = 0.5; }
-          if (d2 > 250000) continue; // ignore pairs further than 500 units
-          f = (k * k) / d2;
-          a.fx += dx * f; a.fy += dy * f;
-          b.fx -= dx * f; b.fy -= dy * f;
+        a.cx = Math.floor(a.x / CELL); a.cy = Math.floor(a.y / CELL);
+        var key = a.cx + ',' + a.cy;
+        var bucket = grid.get(key);
+        if (!bucket) { bucket = []; grid.set(key, bucket); }
+        bucket.push(i);
+      }
+      for (i = 0; i < count; i++) {
+        a = active[i];
+        for (var gx = a.cx - 1; gx <= a.cx + 1; gx++) {
+          for (var gy = a.cy - 1; gy <= a.cy + 1; gy++) {
+            var cell = grid.get(gx + ',' + gy);
+            if (!cell) continue;
+            for (var c = 0; c < cell.length; c++) {
+              j = cell[c];
+              if (j > i) repel(a, active[j]);
+            }
+          }
         }
       }
       // Springs.
@@ -185,15 +205,18 @@
       var active = nodes.filter(function (n) { return n.visible; });
       var activeEdges = edges.filter(function (e) { return e.visible; });
       var n = Math.max(active.length, 1);
-      // Budget about 12 million pair interactions in total, between 40 and 400 iterations.
-      var iterations = Math.max(40, Math.min(400, Math.floor(12e6 / (n * n))));
-      var perFrame = Math.max(1, Math.floor(400000 / (n * n)));
+      // Repulsion is bucketed, so a step costs roughly n times the nodes near each one. Fewer
+      // iterations on big graphs, and never more than about a million node visits per frame,
+      // including with reduced motion, so a large project cannot freeze the page.
+      var iterations = Math.max(40, Math.min(400, Math.floor(4e6 / n)));
+      var perFrame = Math.max(1, Math.min(50, Math.floor(1e6 / n)));
       var done = 0;
       var temperature = 40;
       var cooling = Math.pow(0.5 / temperature, 1 / iterations);
       var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       function tick() {
-        var batch = reduced ? iterations : perFrame;
+        // Reduced motion draws less often, but still yields to the browser between batches.
+        var batch = reduced ? perFrame * 4 : perFrame;
         var moved = 0;
         for (var s = 0; s < batch && done < iterations; s++, done++) {
           moved = step(active, activeEdges, temperature);

@@ -37,7 +37,9 @@ can't tell you two topics *should* relate. That is the judgment this skill carri
 2. **Cluster** — run `keyword_audit` for the co-occurrence pairs; group topics by
    shared keywords/category into relationship sets with concept/task/reference roles.
 3. **De-dup** — `reltable_audit` (existing coverage + the links it already generates)
-   and `where_used`; drop pairs already related.
+   and `where_used`; drop pairs already related. `project_graph` lists every existing
+   relationship in one call: `reltable` edges (kept apart from TOC `topicref`s) and
+   inline `link` edges ([[dita-project-graph]]).
 4. **Propose to the user** — relatedness is an editorial call; confirm the rows
    before writing.
 5. **Author** — `edit_reltable`: `create-table --columns concept,task,reference` (if

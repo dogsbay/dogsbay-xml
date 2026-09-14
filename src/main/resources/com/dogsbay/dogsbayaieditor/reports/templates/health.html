@@ -95,7 +95,10 @@
     if (checked.indexOf('schematron') >= 0) {
       var s = h.schematron || {};
       var sf = groups(h.schematronRules).concat((s.findings || []).map(function (f) {
-        return { severity: 'error', rule: f.test, file: rel(f.file), line: f.line, message: f.message };
+        // Same rule as ProjectHealthReport.blocks: a softened role is advisory, anything else blocks.
+        var role = String(f.role || '').toLowerCase();
+        var advisory = ['warning', 'warn', 'info', 'information', 'hint'].indexOf(role) >= 0;
+        return { severity: advisory ? 'warning' : 'error', rule: f.test, file: rel(f.file), line: f.line, message: f.message };
       }));
       out.push({ name: 'House rules', total: s.total, passed: s.passed, failed: s.failed, findings: sf });
     }
@@ -119,7 +122,11 @@
   R.themeToggle(document.getElementById('theme-toggle'));
 
   var SEVERITY_RANK = { error: 0, broken: 0, warning: 1, suspect: 2, info: 3 };
-  var totalFindings = sections.reduce(function (sum, s) { return sum + ((s.findings || []).length); }, 0);
+  // A grouped rule is one row standing for count findings.
+  function findingCount(list) {
+    return (list || []).reduce(function (sum, f) { return sum + (f.count != null ? f.count : 1); }, 0);
+  }
+  var totalFindings = sections.reduce(function (sum, s) { return sum + findingCount(s.findings); }, 0);
   var clean = typeof data.clean === 'boolean' ? data.clean : totalFindings === 0;
 
   var summary = document.getElementById('summary');
@@ -135,7 +142,7 @@
   sections.forEach(function (section, i) {
     var findings = Array.isArray(section.findings) ? section.findings : [];
     var figures = el('dl', { class: 'figures' });
-    [['passed', section.passed], ['failed', section.failed], ['total', section.total], ['findings', findings.length]].forEach(function (f) {
+    [['passed', section.passed], ['failed', section.failed], ['total', section.total], ['findings', findingCount(findings)]].forEach(function (f) {
       if (f[1] == null) return;
       figures.appendChild(el('div', null, el('dt', null, f[0]), el('dd', null, String(f[1]))));
     });

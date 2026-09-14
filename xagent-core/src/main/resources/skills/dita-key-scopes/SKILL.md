@@ -25,7 +25,10 @@ here you *keep* both, kept apart by scope.)
 
 1. **Confirm the collision.** `list_keys <map>` — if a key you expect in several
    places appears once (or resolves to the wrong file), the definitions are colliding
-   in one flat namespace.
+   in one flat namespace. Across the whole project, `project_graph` shows it
+   directly: a `shadowed-key` issue names the losing definition, several `keytarget`
+   edges for one key carry different `via` maps, and `key-resolves-inconsistently`
+   names the deliverables where a key fails ([[dita-project-graph]]).
 2. **Scope each reuse.** Put the colliding subtrees under their own `@keyscope`. For a
    collection that maprefs several guides, scope each mapref:
    `edit_map <map> set-attr --ref <selector> --name keyscope --value <scope>`

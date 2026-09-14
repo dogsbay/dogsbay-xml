@@ -14,7 +14,11 @@ pass: `where_used`, `rename_file`, `retarget`, `rename_element_id`, `delete_file
 
 1. **Always survey the blast radius first.** `where_used <file>` (or the op's
    `--dry-run`) lists every inbound reference an edit will touch. Never refactor
-   blind — review the list, then apply.
+   blind — review the list, then apply. `where_used` stays the authority: it also
+   finds image and other non-DITA references, which `project_graph` leaves out. For a
+   change touching several topics or keys, `project_graph` adds the wider picture:
+   `keytarget` edges (with the map that bound each key) and which deliverables ship
+   each file; see [[dita-project-graph]].
 2. Apply, then **verify** with `check_links` (and `conref_audit` for element-ids) so
    nothing dangles.
 

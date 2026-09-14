@@ -574,8 +574,10 @@ public class McpServer implements HttpHandler {
         list.add(new McpTool("validate_deliverables",
             "Validate every deliverable of the project (from a project.{xml,json,yaml} "
             + "file, else a synthesized default) — each deliverable's map publication "
-            + "set, on disk. Returns one result per deliverable (name, map, counts + "
-            + "failing files), so you can see which audiences/outputs are affected. Grammar only: "
+            + "set, on disk, each file validated once. Returns per-deliverable counts (name, map, "
+            + "total, passed, failed) and each finding once with the deliverables it breaks "
+            + "(capped at 200; truncated says how many more), so you can see which "
+            + "audiences/outputs are affected. Grammar only: "
             + "for references, keys and reuse per deliverable use project_graph, or project_health "
             + "with that deliverable's map.",
             "validate-deliverables", schema(
@@ -1056,8 +1058,10 @@ public class McpServer implements HttpHandler {
             + "and dark. The page shows a read-only tool's output: give source (project_graph for a "
             + "relationship map, project_health for a health report) and that tool's args, or pass "
             + "data (JSON). Templates: relationship-map, health, or a project template path such as "
-            + ".dogsbay/reports/mine.html; defaults from the source. Use this rather than writing an "
-            + "extractor or a page yourself.",
+            + ".dogsbay/reports/mine.html; defaults from the source. For a different view, design a "
+            + "template (an HTML page with one empty <script id=\"report-data\" type=\"application/json\"> "
+            + "element it reads with JSON.parse) and render it here, so the page can be regenerated. "
+            + "Never extract the data yourself.",
             "render-report", schema(
                 prop("output", "string", "Where to write the page; relative paths resolve against root", true),
                 prop("root", "string", "Project root: passed to the source tool, and resolves template "

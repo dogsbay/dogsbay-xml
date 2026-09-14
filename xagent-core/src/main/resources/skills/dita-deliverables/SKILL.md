@@ -29,10 +29,14 @@ optional DITAVAL filter, a transtype, an output dir, and publication params. Too
 ## Process
 
 1. **Understand the set** — `get_project` lists the deliverables (root map, ditaval,
-   transtype, params, source file).
+   transtype, params, source file). To see what each one actually publishes, and how
+   two outputs differ, read `deliverables[].ships` from `project_graph`; it also
+   reports keys that resolve in some deliverables and not others
+   ([[dita-project-graph]]).
 2. **Static validate per output** — `validate_deliverables` validates each
-   deliverable's filtered publication set; report which *outputs* an error affects
-   (an error in mac-only content fails the mac build, not windows).
+   deliverable's publication set (unfiltered: DITAVAL is not applied) and reports
+   each invalid file once with the deliverables it breaks; report which *outputs* an
+   error affects.
 3. **Deep validate when needed** — `validate_deep` runs DITA-OT preprocessing to
    catch what static checks can't: broken keyref/conref **after** key resolution and
    filtering, map/topic resolution. Requires DITA-OT. Do this before declaring a

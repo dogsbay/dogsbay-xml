@@ -202,16 +202,28 @@
     if (scopeSelect.value === '') return null;
     var d = deliverables[Number(scopeSelect.value)];
     if (!d) return null;
-    var set = new Set(Array.isArray(d.ships) ? d.ships : []);
-    if (d.map) set.add(d.map);
+    var files = new Set(Array.isArray(d.ships) ? d.ships : []);
+    if (d.map) files.add(d.map);
+    var set = new Set(files);
     (d.ditavals || []).forEach(function (v) { if (nodeById.has(v)) set.add(v); });
-    // Keys and ditavals touched by shipped nodes.
+    // Only what this deliverable uses: its own profiles, DITAVALs its maps reference, keys its
+    // maps define or its files reference, and key bindings made by one of its maps. Two
+    // deliverables can share a root map, so a profile edge counts only for its own deliverable.
     edges.forEach(function (e) {
-      [[e.from, e.to], [e.to, e.from]].forEach(function (pair) {
-        if (!set.has(pair[0])) return;
-        var other = nodeById.get(pair[1]);
-        if (other && (other.kind === 'key' || other.kind === 'ditaval')) set.add(pair[1]);
-      });
+      switch (e.kind) {
+        case 'profile':
+          if (e.deliverable === d.name && nodeById.has(e.to)) set.add(e.to);
+          break;
+        case 'ditavalref':
+        case 'keydef':
+        case 'keyref':
+        case 'conkeyref':
+          if (files.has(e.from) && nodeById.has(e.to)) set.add(e.to);
+          break;
+        case 'keytarget':
+          if (e.via && files.has(e.via)) set.add(e.from);
+          break;
+      }
     });
     return set;
   }

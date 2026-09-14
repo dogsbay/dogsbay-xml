@@ -73,10 +73,10 @@ class ReportCmd implements Callable<Integer> {
         if (template != null) {
             params.put("template", template);
         }
+        params.put("source", source);
         if (data != null) {
             params.put("data", Files.readString(data));
         } else {
-            params.put("source", source);
             ObjectNode sourceArgs = params.putObject("args");
             if (args != null) {
                 args.forEach(sourceArgs::put);

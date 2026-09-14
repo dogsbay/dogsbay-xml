@@ -90,6 +90,21 @@ class ProjectGraphCommandTest {
     }
 
     @Test
+    void aScopedGraphReportsOnlyItsOwnFiles(@TempDir Path dir) throws Exception {
+        project(dir);
+        Files.writeString(dir.resolve("other.ditamap"), """
+                <map><title>Other</title><topicref href="elsewhere.dita"/></map>""");
+        Files.writeString(dir.resolve("elsewhere.dita"), """
+                <topic id="e"><title>E</title><body><p conref="common.dita#c/missing-too"/></body></topic>""");
+
+        ProjectGraph graph = executor.execute(new ProjectGraphCommand(dir.toString(), "guide.ditamap", null, true));
+
+        assertThat(graph.issues()).extracting(GraphIssue::file).doesNotContain("elsewhere.dita");
+        assertThat(graph.issues()).filteredOn(i -> i.rule().equals("broken-element-id"))
+                .extracting(GraphIssue::file).containsExactly("a.dita");
+    }
+
+    @Test
     void anUnknownDeliverableIsAnArgumentError(@TempDir Path dir) throws Exception {
         project(dir);
 

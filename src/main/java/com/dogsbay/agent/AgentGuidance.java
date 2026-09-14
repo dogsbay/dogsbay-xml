@@ -33,7 +33,8 @@ public final class AgentGuidance {
     /** Validation and auditing: one done-gate, granular tools for re-checks. */
     public static final String CHECKS =
             "To validate or audit, start with project_health: one call covers check_links (references and keys), "
-            + "conref_audit (element ids), validate_project (DTD validation of the publication set) and "
+            + "conref_audit (element ids), validate_project (DTD validation of the map's publication set, or every "
+            + "file under root) and "
             + "metadata_audit, plus schematron_project when you pass schematron. Narrow it with include and "
             + "severity. Re-check a single dimension after a fix with the granular tool, or validate_document "
             + "for one file.";
@@ -43,10 +44,12 @@ public final class AgentGuidance {
             "For how the project connects (maps, topics, keys, reuse, reltables, what each deliverable ships), "
             + "call project_graph once rather than where_used per file.";
 
-    /** Pages for people: a template over command data, not a hand-written extractor. */
+    /** Pages for people: the facts always come from the tools; the presentation may be the agent's. */
     public static final String REPORTS =
-            "For a standalone HTML page (a relationship map, a health report), call render_report with a "
-            + "built-in template or one in .dogsbay/reports/; do not write your own extractor or page.";
+            "Never extract project data yourself (regex, XPath or scripts over the files): the tools already "
+            + "resolve links and keys. For a standalone HTML page, call render_report (templates relationship-map "
+            + "and health), or build the page from the tool's JSON, ideally as a template in .dogsbay/reports/ "
+            + "that render_report can regenerate.";
 
     private AgentGuidance() {
     }

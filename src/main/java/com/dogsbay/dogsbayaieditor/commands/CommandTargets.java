@@ -84,7 +84,7 @@ public record CommandTargets(Scope scope, List<Path> files, Path root, boolean a
             // Writes a render artefact to a caller-chosen path; a plain read when there is none.
             case RenderPreviewCommand c -> c.output() == null || c.output().isBlank() ? NONE : files(path(c.output()));
             // A report page is always written to the path the caller chose.
-            case RenderReportCommand c -> files(path(c.output()));
+            case RenderReportCommand c -> files(path(reportOutput(c)));
             // Moves the project root, which is the containment boundary: state, not a read.
             case OpenProjectCommand c -> new CommandTargets(Scope.FILES, List.of(), null, false);
             case EditMapCommand c -> files(path(c.map()));
@@ -205,5 +205,14 @@ public record CommandTargets(Scope scope, List<Path> files, Path root, boolean a
 
     private static Path path(String s) {
         return s == null || s.isBlank() ? null : Path.of(s);
+    }
+
+    /** A report's output as the executor writes it: a relative path is relative to the project root. */
+    private static String reportOutput(RenderReportCommand c) {
+        if (c.output() == null || c.output().isBlank() || c.root() == null || c.root().isBlank()
+                || Path.of(c.output()).isAbsolute()) {
+            return c.output();
+        }
+        return Path.of(c.root()).resolve(c.output()).toString();
     }
 }

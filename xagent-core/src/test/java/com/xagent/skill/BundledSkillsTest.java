@@ -61,6 +61,16 @@ class BundledSkillsTest {
 	}
 
 	@Test
+	void everyIndexedSkillIsBundledAndLoadsUnderItsOwnName() throws IOException {
+		Path dir = BundledSkills.extract(tempDir, "2.0.0");
+		var skills = new SkillLoader(tempDir.resolve("empty-home")).loadAll(tempDir.resolve("nonexistent-cwd"), List.of(dir));
+
+		// An index line without a SKILL.md, or a SKILL.md whose name differs from its folder, is a skill no agent sees.
+		assertThat(skills).extracting(s -> s.name()).containsAll(BundledSkills.readIndex());
+		assertThat(BundledSkills.readIndex()).contains("dita-project-graph");
+	}
+
+	@Test
 	void extractIsRepeatableAndOverwrites() throws IOException {
 		BundledSkills.extract(tempDir, "1.0.0");
 		Path dir = BundledSkills.extract(tempDir, "1.0.0");   // second run must not fail

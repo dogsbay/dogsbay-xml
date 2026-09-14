@@ -106,6 +106,18 @@ class RenderReportCommandTest {
     }
 
     @Test
+    void aSourceWithNoTemplateIsRefusedBeforeItRuns(@TempDir Path root) {
+        RecordingExecutor recorder = new RecordingExecutor();
+        ObjectNode p = params(root, "page.html");
+        p.put("source", "check_links");
+
+        assertThatThrownBy(() -> new JsonRpcHandler(recorder).dispatch("render-report", p))
+                .isInstanceOf(CommandException.class)
+                .hasMessageContaining("relationship-map");
+        assertThat(recorder.calls).isEmpty();
+    }
+
+    @Test
     void aProjectTemplateIsUsed(@TempDir Path root) throws Exception {
         Files.createDirectories(root.resolve(".dogsbay/reports"));
         Files.writeString(root.resolve(".dogsbay/reports/mine.html"), """
