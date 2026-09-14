@@ -132,7 +132,7 @@ dependencies {
 
     // XML Processing
     implementation("xerces:xercesImpl:2.12.2")
-    implementation("xml-apis:xml-apis:1.4.01")
+    implementation("xml-apis:xml-apis:2.0.2")
     implementation("net.sf.saxon:Saxon-HE:${property("saxonVersion")}")
     implementation("xml-resolver:xml-resolver:1.2")
     // Schematron for batch schematron_project. We use the XSLT engine (compiles
