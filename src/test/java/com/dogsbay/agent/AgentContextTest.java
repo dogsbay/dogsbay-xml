@@ -56,7 +56,7 @@ class AgentContextTest {
                 Path.of("/p/topic.dita"), null, List.of(Path.of("/p/topic.dita")), "Agent");
         String out = ctx.toPromptFragment();
         assertThat(out)
-                .contains("Active file: /p/topic.dita")
+                .contains("Active file: " + Path.of("/p/topic.dita"))
                 .doesNotContain("(")                 // no type/grammar annotation
                 .doesNotContain("Active deliverable");
     }
@@ -71,7 +71,7 @@ class AgentContextTest {
                 "PDF", Path.of("/p/user-guide.ditamap"));
         String out = ctx.toPromptFragment();
         assertThat(out)
-                .contains("Active file: /p/topic.dita  (concept (DITA); concept.dtd (DTD))")
+                .contains("Active file: " + Path.of("/p/topic.dita") + "  (concept (DITA); concept.dtd (DTD))")
                 .contains("Active deliverable: PDF  (map: user-guide.ditamap)")
                 .contains("Current selection:")
                 .contains("<p>x</p>");
@@ -82,7 +82,7 @@ class AgentContextTest {
         AgentContext ctx = new AgentContext(
                 Path.of("/p/a.xml"), null, List.of(Path.of("/p/a.xml")), "Agent",
                 "book", null, null, null);
-        assertThat(ctx.toPromptFragment()).contains("Active file: /p/a.xml  (book)");
+        assertThat(ctx.toPromptFragment()).contains("Active file: " + Path.of("/p/a.xml") + "  (book)");
     }
 
     @Test

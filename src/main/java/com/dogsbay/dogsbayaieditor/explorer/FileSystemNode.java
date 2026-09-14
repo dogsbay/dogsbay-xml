@@ -45,7 +45,9 @@ public class FileSystemNode extends DefaultMutableTreeNode {
 
     /** True when {@code f} should appear in the tree. */
     static boolean isVisible(File f) {
-        return showHidden || !f.isHidden();
+        // Windows marks hidden files with an attribute, not a leading dot, so
+        // .dogsbay and .gitignore would otherwise show there and nowhere else.
+        return showHidden || !(f.isHidden() || f.getName().startsWith("."));
     }
 
     private File file;

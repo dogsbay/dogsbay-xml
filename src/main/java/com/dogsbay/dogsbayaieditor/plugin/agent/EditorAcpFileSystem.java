@@ -117,19 +117,23 @@ public final class EditorAcpFileSystem implements AcpClient.FileSystem {
     }
 
     /**
-     * The real path, or a refusal. Symlinks are resolved on both sides, as
-     * the write gate does, so a link inside the project cannot reach out.
-     * Reads are not gated, so this is their only containment.
+     * The path as given (absolute), or a refusal. Containment is checked on the
+     * real path, symlinks resolved on both sides as the write gate does, so a link
+     * inside the project cannot reach out. Reads are not gated, so this is their
+     * only containment. The given spelling is what comes back: the editor knows an
+     * open document by the path it was opened with, so looking it up by the real
+     * path missed the buffer wherever the two differ (a symlink, a Windows short
+     * name) and served the disk instead.
      */
     private Path contained(Path path) throws IOException {
         Path root = projectRoot.get();
         if (root == null) {
             throw new IOException("no project is open; open one before the agent can use files");
         }
-        Path real = WriteGate.real(path.toAbsolutePath().normalize());
-        if (!real.startsWith(WriteGate.real(root))) {
+        Path given = path.toAbsolutePath().normalize();
+        if (!WriteGate.real(given).startsWith(WriteGate.real(root))) {
             throw new IOException("'" + path + "' is outside the project '" + root + "'");
         }
-        return real;
+        return given;
     }
 }

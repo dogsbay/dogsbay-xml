@@ -90,7 +90,9 @@ public final class Mentions {
                 if (Files.size(p) > MAX_INLINE_BYTES) {
                     continue;
                 }
-                sb.append("\n\n--- ").append(root.relativize(p)).append(" ---\n")
+                // Forward slashes on every platform, matching the @mention it came from.
+                sb.append("\n\n--- ").append(root.relativize(p).toString().replace(File.separatorChar, '/'))
+                        .append(" ---\n")
                         .append(Files.readString(p, StandardCharsets.UTF_8));
             } catch (IOException unreadable) {
                 // the mention stays as text

@@ -907,8 +907,11 @@ public final class ReferenceRewriter {
     /** Relative path from {@code fromDir} to {@code to}, forward slashes. */
     static String relativePath(File fromDir, File to) {
         try {
+            // Both sides canonical: one canonical and one merely absolute differ
+            // wherever the path has a symlink or a Windows short name (RUNNER~1),
+            // and the link climbs out to the root and back in by the other spelling.
             Path from = fromDir.getCanonicalFile().toPath();
-            Path dest = to.getAbsoluteFile().toPath().normalize();
+            Path dest = to.getCanonicalFile().toPath();
             return from.relativize(dest).toString().replace(File.separatorChar, '/');
         } catch (Exception e) {
             return to.getAbsolutePath().replace(File.separatorChar, '/');

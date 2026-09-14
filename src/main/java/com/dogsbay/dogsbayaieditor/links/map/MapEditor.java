@@ -372,9 +372,19 @@ public final class MapEditor {
     }
 
     private static String relativize(File fromDir, File target) {
-        String rel = fromDir.toPath().toAbsolutePath().normalize()
-                .relativize(target.toPath().toAbsolutePath().normalize()).toString();
+        // Canonical on both sides: callers mix canonical and absolute files, and the
+        // two spellings differ across a symlink or a Windows short name (RUNNER~1),
+        // which made a link climb to the root and back in by the other spelling.
+        String rel = canonical(fromDir).relativize(canonical(target)).toString();
         return rel.replace(File.separatorChar, '/');
+    }
+
+    private static java.nio.file.Path canonical(File f) {
+        try {
+            return f.getCanonicalFile().toPath();
+        } catch (java.io.IOException e) {
+            return f.toPath().toAbsolutePath().normalize();
+        }
     }
 
     private static boolean sameFile(File a, File b) {

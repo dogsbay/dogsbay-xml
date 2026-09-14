@@ -549,6 +549,9 @@ class RefactorCommandsTest {
         // map-relative, not an absolute machine path.
         writeFixtureProject();
         java.nio.file.Path cwd = java.nio.file.Paths.get("").toAbsolutePath();
+        // No relative path joins two Windows drives (a checkout on D:, temp on C:).
+        org.junit.jupiter.api.Assumptions.assumeTrue(cwd.getRoot().equals(tempDir.toAbsolutePath().getRoot()),
+                "the working directory and the temp directory are on different drives");
         String relTopic = cwd.relativize(
                 tempDir.resolve("topics/intro.dita").toAbsolutePath()).toString();
         String relMap = cwd.relativize(

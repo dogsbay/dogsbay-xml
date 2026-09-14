@@ -70,7 +70,8 @@ class HealthOpenProposalsTest {
     void anArgsFilterParamJoinsTheListInsteadOfReplacingIt() {
         String joined = com.dogsbay.xml.dita.DitaOtBuilder.joinFilters(
                 List.of(new java.io.File("/w/review-open.ditaval")), "/p/prod.ditaval");
-        assertThat(joined).isEqualTo("/w/review-open.ditaval" + java.io.File.pathSeparator + "/p/prod.ditaval");
+        assertThat(joined).isEqualTo(new java.io.File("/w/review-open.ditaval").getAbsolutePath()
+                + java.io.File.pathSeparator + "/p/prod.ditaval");
         assertThat(com.dogsbay.xml.dita.DitaOtBuilder.joinFilters(List.of(), null)).isNull();
     }
 

@@ -66,6 +66,9 @@ class WriteGateTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        // The gate keys leases by real path. On Windows the temp directory is spelled
+        // with a short name (RUNNER~1) that its real path expands, so start from that.
+        root = root.toRealPath();
         gate = new WriteGate(leases, () -> root, docs);
         topic = Files.writeString(root.resolve("a.dita"), "<topic/>").toAbsolutePath().normalize();
         docs.open.put(topic, "<topic/>");

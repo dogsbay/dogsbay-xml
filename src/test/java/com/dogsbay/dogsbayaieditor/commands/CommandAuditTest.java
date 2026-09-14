@@ -47,7 +47,7 @@ class CommandAuditTest {
     @Test
     void filesComeFromTheCommandsTargets() {
         assertThat(CommandAudit.files(new SetContentCommand(Path.of("/p/a.dita"), "x")))
-                .containsExactly("/p/a.dita");
+                .containsExactly(Path.of("/p/a.dita").toString());
         assertThat(CommandAudit.files(new SetContentCommand(null, "x"))).containsExactly("<active-document>");
         assertThat(CommandAudit.files(new RenameKeyCommand("old", "new", "/proj", true)))
                 .containsExactly("/proj");
@@ -80,7 +80,7 @@ class CommandAuditTest {
         assertThat(entries).hasSize(2);
         assertThat(entries.get(0).command()).isEqualTo("set-content");
         assertThat(entries.get(0).identity()).isEqualTo("ai:test");
-        assertThat(entries.get(0).files()).containsExactly("/p/a.dita");
+        assertThat(entries.get(0).files()).containsExactly(Path.of("/p/a.dita").toString());
         assertThat(entries.get(1).dryRun()).isTrue();
         assertThat(entries.get(1).outcome()).isEqualTo("error:INVALID_ARGUMENT");
     }

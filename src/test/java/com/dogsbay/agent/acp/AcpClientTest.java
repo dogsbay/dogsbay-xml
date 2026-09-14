@@ -123,7 +123,7 @@ class AcpClientTest {
         assertThat(id).isEqualTo("sess-1");
         assertThat(agent.requestsFor("authenticate").get(0).at("/params/methodId").asText()).isEqualTo("oauth");
         JsonNode p = agent.requestsFor("session/new").get(0).get("params");
-        assertThat(p.get("cwd").asText()).isEqualTo("/proj");
+        assertThat(p.get("cwd").asText()).isEqualTo(Path.of("/proj").toAbsolutePath().toString());
         assertThat(p.at("/mcpServers/0/type").asText()).isEqualTo("http");
         assertThat(p.at("/mcpServers/0/headers/0/name").asText()).isEqualTo("Authorization");
         assertThat(p.at("/mcpServers/1/type").asText()).isEqualTo("stdio");
@@ -296,7 +296,7 @@ class AcpClientTest {
 
         JsonNode p = agent.requestsFor("session/load").get(0).get("params");
         assertThat(p.get("sessionId").asText()).isEqualTo("old-1");
-        assertThat(p.get("cwd").asText()).isEqualTo("/proj");
+        assertThat(p.get("cwd").asText()).isEqualTo(Path.of("/proj").toAbsolutePath().toString());
         assertThat(p.at("/mcpServers/0/name").asText()).isEqualTo("dogsbay-editor");
         assertThat(updates).anySatisfy(u -> assertThat(u).isInstanceOf(Update.AgentMessage.class));
     }

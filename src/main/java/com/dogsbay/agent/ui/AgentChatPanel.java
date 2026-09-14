@@ -1298,7 +1298,13 @@ public final class AgentChatPanel extends JPanel {
 
     // test/diagnostic hooks
     public String transcriptText() {
-        return transcript.getText();
+        // The document itself: JTextPane.getText() writes line breaks as the
+        // platform separator, so on Windows every "\n" came back as "\r\n".
+        try {
+            return transcript.getDocument().getText(0, transcript.getDocument().getLength());
+        } catch (javax.swing.text.BadLocationException e) {
+            return "";
+        }
     }
 
     String hintText() {

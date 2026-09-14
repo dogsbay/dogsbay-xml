@@ -28,7 +28,8 @@ class HostedBriefTest {
     @Test
     void tellsTheAgentWhatValidateMeansAndToPreferEditorTools() {
         String b = HostedBrief.text(Path.of("/proj"), Path.of("/proj/a.dita"), true);
-        assertThat(b).contains("/proj").contains("Active document: /proj/a.dita");
+        assertThat(b).contains(Path.of("/proj").toString())
+                .contains("Active document: " + Path.of("/proj/a.dita"));
         assertThat(b).contains("validate_document").contains("schematron_project").contains("check_links");
         assertThat(b).contains("Prefer them to a shell").contains("\"dogsbay-editor\"");
         assertThat(b).contains("read it in the same session");
