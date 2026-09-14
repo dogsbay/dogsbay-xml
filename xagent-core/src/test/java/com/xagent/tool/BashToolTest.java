@@ -22,12 +22,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.xagent.tool.operations.DefaultBashOperations;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// DefaultBashOperations runs `bash -c` with POSIX shell syntax, which Windows has no
+// dependable equivalent for (see plans/known-issues.md).
+@DisabledOnOs(value = OS.WINDOWS, disabledReason = "the bash tool needs a POSIX shell")
 class BashToolTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();

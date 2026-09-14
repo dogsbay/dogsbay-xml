@@ -109,7 +109,7 @@ class PermissionSettingsTest {
 	void defaultFilesAreUserThenProject() {
 		var files = PermissionSettings.defaultFiles(Path.of("/work/project"));
 		assertThat(files).hasSize(2);
-		assertThat(files.get(0).toString()).endsWith(".xagent/settings.json");
+		assertThat(files.get(0).endsWith(Path.of(".xagent", "settings.json"))).isTrue();
 		assertThat(files.get(1)).isEqualTo(Path.of("/work/project/.xagent/settings.json"));
 	}
 }

@@ -83,6 +83,10 @@ class AuthStorageTest {
 		var storage = storage();
 		storage.set("openai-codex", creds("a", 1));
 
+		// Windows file systems have no POSIX modes; AuthStorage skips them there too.
+		org.junit.jupiter.api.Assumptions.assumeTrue(
+			storage.file().getFileSystem().supportedFileAttributeViews().contains("posix"),
+			"POSIX permissions not supported on this file system");
 		var permissions = Files.getPosixFilePermissions(storage.file());
 		assertThat(permissions).containsExactlyInAnyOrder(
 			PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);

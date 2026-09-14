@@ -37,7 +37,7 @@ class SkillPromptFormatterTest {
 		assertThat(output).contains("<available_skills>");
 		assertThat(output).contains("<name>my-skill</name>");
 		assertThat(output).contains("<description>Does useful things.</description>");
-		assertThat(output).contains("<location>/skills/my-skill/SKILL.md</location>");
+		assertThat(output).contains("<location>" + Path.of("/skills/my-skill/SKILL.md") + "</location>");
 		assertThat(output).contains("</available_skills>");
 	}
 
