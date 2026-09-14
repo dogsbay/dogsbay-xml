@@ -53,7 +53,7 @@ class CommandAuditTest {
         assertThat(CommandAudit.files(new RenameKeyCommand("old", "new", "/proj", true)))
                 .containsExactly(Path.of("/proj").toString());
         assertThat(CommandAudit.files(new ExtractConrefCommand("a.dita", "id", "reuse/w.dita", true)))
-                .containsExactly("a.dita", "reuse/w.dita");
+                .containsExactly("a.dita", Path.of("reuse/w.dita").toString());
         // read-only commands fall back to their path-like inputs, for context
         assertThat(CommandAudit.files(new ValidateCommand(Path.of("a.dita"), Path.of("s.dtd"),
                 List.of(Path.of("c.xml"))))).containsExactly("a.dita", "s.dtd", "c.xml");
