@@ -269,6 +269,12 @@ tasks.test {
     System.getProperty("acp.smoke.mcp")?.let { systemProperty("acp.smoke.mcp", it) }
 }
 
+// A development run keeps its output on the console. Not in
+// applicationDefaultJvmArgs: those reach the packaged launcher too.
+tasks.named<JavaExec>("run") {
+    systemProperty("dogsbay.debug", "true")
+}
+
 // ── DogsBay Author (standalone offering) ───────────────────────────────────
 // Self-contained jar for the WYSIWYG Author editor: the standalone-clean
 // xml/author engine + the schema package + the bundled XML stack. Verified by

@@ -61,8 +61,16 @@ public class Main {
 	static final int XMLPLUS_PORT = 9601;
 	/** How long to look for a running instance before starting a new one. */
 	static final int SINGLE_INSTANCE_CONNECT_TIMEOUT_MS = 500;
+	/** How long a running editor has to confirm it took the file. */
+	static final int SINGLE_INSTANCE_REPLY_TIMEOUT_MS = 2000;
 
-	private static final boolean DEBUG = true;
+	/**
+	 * Development runs only: set by {@code -Ddogsbay.debug=true} (the Gradle {@code run}
+	 * task and run.sh). A packaged app leaves it off, so it writes its output to
+	 * {@code ~/.dogsbay/.dogsbay.out} and {@code .dogsbay.err} instead of a console
+	 * nobody sees.
+	 */
+	private static final boolean DEBUG = Boolean.getBoolean("dogsbay.debug");
 	private static DefaultAuthenticator authenticator = null;
 
 	public static final String PLUGINS_LOCATION = "plugins";
@@ -652,33 +660,9 @@ public class Main {
 	/**
 	 * Attempts to load DogsBayAIEditor in a single JVM instance only.
 	 */
-	protected Socket findDogsBayAIEditorSocket() {
-		// Loopback with a short timeout: the host's network address can take a name
-		// lookup or a firewall drop to fail, which on Windows hung startup silently.
-		Socket s = new Socket();
-		try {
-			s.connect(new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), XMLPLUS_PORT),
-					SINGLE_INSTANCE_CONNECT_TIMEOUT_MS);
-			return s;
-		} catch (IOException e) {
-			try {
-				s.close();
-			} catch (IOException ignore) {
-				// nothing to release
-			}
-			// e.printStackTrace();
-			return null;
-		}
-	}
-
-	/**
-	 * Attempts to load DogsBayAIEditor in a single JVM instance only.
-	 */
 	public void launch(ExtensionClassLoader loader, String path) {
 		if (DEBUG)
 			System.out.println("Main::launch(loader, path): (" + loader + ", " + path + ")");
-		boolean launched = false;
-		File file = null;
 
 		if (path != null && path.equals("-noserver")) {
 			// force the editor to start without a server.
@@ -687,60 +671,29 @@ public class Main {
 		}
 
 		if (path != null && !path.equals("-debugger")) {
-			file = new File(path);
-			path = file.getPath();
+			path = new File(path).getPath();
 		} else if (path == null) {
 			path = "-editor";
 		}
 
-		while (!launched) {
-			Socket socket = findDogsBayAIEditorSocket();
-
-			if (socket != null) { // already an editor or debugger active.
-
-				// check for a license, do not continue if no license found ...
-				/*
-				 * try {
-				 * LicenseManager licenseManager = LicenseManager.getInstance();
-				 * licenseManager.isValid( KeyGenerator.generate(2), "DogsBay XML");
-				 * } catch( Exception ex) {
-				 */
-				// System.err.println( "Server Socket started but could not find a license!");
-				// System.exit( 0);
-				// }
-
-				try {
-					if (path != null) {
-						OutputStream stream = socket.getOutputStream();
-						byte[] bytes = path.getBytes();
-						stream.write(bytes.length);
-						stream.write(bytes);
-						stream.close();
-					}
-					launched = true;
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.err.println("ERROR: Could not connect to socket!");
-				}
-			} else {
-				try {
-					// Start-up server-socket!
-					// Loopback only: another instance on this machine is the only client.
-					ServerSocket server = new ServerSocket(XMLPLUS_PORT, 50, InetAddress.getLoopbackAddress());
-
-					start(loader, path);
-
-					Thread listener = new ListenerThread(server);
-					listener.start();
-
-					launched = true;
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.err.println("ERROR: Could not create server!");
-				}
-			}
+		// A running editor takes the file only if it says so. A port held by anything
+		// else (a process that crashed after binding it) gets no reply, and this launch
+		// starts its own editor instead of exiting without a window.
+		if (SingleInstance.handOff(XMLPLUS_PORT, path, SINGLE_INSTANCE_CONNECT_TIMEOUT_MS,
+				SINGLE_INSTANCE_REPLY_TIMEOUT_MS)) {
+			return;
 		}
 
+		start(loader, path);
+
+		// Bound only once the editor is up, so a failed start cannot leave the port held.
+		ServerSocket server = SingleInstance.bind(XMLPLUS_PORT);
+		if (server != null) {
+			SingleInstance.listen(server, file -> SwingUtilities.invokeLater(() -> open(file)));
+		} else {
+			System.err.println("Port " + XMLPLUS_PORT + " is in use: later launches will open"
+					+ " their own window rather than this one.");
+		}
 	}
 
 	protected boolean isEmptyString(String string) {
@@ -853,43 +806,12 @@ public class Main {
 		}
 	}
 
-	public class ListenerThread extends Thread {
-		ServerSocket server = null;
-
-		public ListenerThread(ServerSocket socket) {
-			server = socket;
-		}
-
-		public void run() {
-			try {
-				while (true) {
-					Socket socket = server.accept();
-					InputStream stream = socket.getInputStream();
-					int length = stream.read();
-					byte[] bytes = new byte[length];
-					stream.read(bytes);
-
-					String file = new String(bytes);
-					open(file);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.err.println("ERROR: Could not connect to server!");
-			}
-		}
-	}
-
+	/**
+	 * True for a development run ({@code -Ddogsbay.debug=true}). It used to test whether
+	 * the editor class could load, which is always true, so the packaged app printed the
+	 * debug banner and never logged to a file.
+	 */
 	public static boolean isDebug() {
-		ClassLoader loader = Main.class.getClassLoader();
-
-		try {
-			Class invokedClass = loader.loadClass("com.dogsbay.dogsbayaieditor.DogsBayAIEditor");
-
-			return true;
-		} catch (Exception e) {
-			// e.printStackTrace();
-		}
-
-		return false;
+		return DEBUG;
 	}
 }

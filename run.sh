@@ -12,6 +12,7 @@ JVM_FLAGS=(
     --add-opens java.base/java.nio=ALL-UNNAMED    # JNA
     --add-opens java.base/sun.nio.ch=ALL-UNNAMED  # JNA
     --enable-native-access=ALL-UNNAMED            # JNA/pty4j (JDK 24+ warns without it)
+    -Ddogsbay.debug=true                          # console output and the debug banner
 )
 
 exec java "${JVM_FLAGS[@]}" \
