@@ -49,8 +49,9 @@ class CommandAuditTest {
         assertThat(CommandAudit.files(new SetContentCommand(Path.of("/p/a.dita"), "x")))
                 .containsExactly(Path.of("/p/a.dita").toString());
         assertThat(CommandAudit.files(new SetContentCommand(null, "x"))).containsExactly("<active-document>");
+        // A tree command's root is a target Path, so it is recorded in the platform's form.
         assertThat(CommandAudit.files(new RenameKeyCommand("old", "new", "/proj", true)))
-                .containsExactly("/proj");
+                .containsExactly(Path.of("/proj").toString());
         assertThat(CommandAudit.files(new ExtractConrefCommand("a.dita", "id", "reuse/w.dita", true)))
                 .containsExactly("a.dita", "reuse/w.dita");
         // read-only commands fall back to their path-like inputs, for context
