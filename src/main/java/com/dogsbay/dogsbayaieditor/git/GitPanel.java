@@ -400,6 +400,27 @@ public class GitPanel extends ViewTreePanel {
             }
         });
 
+        // The same menu from the keyboard. Without it, staging, unstaging or
+        // discarding a single file needed a pointer: the ⋯ menu only offers the
+        // whole-repository versions. Shift+F10 and the Menu key are the platform
+        // conventions on Windows and Linux; a Mac keyboard has neither, but
+        // Full Keyboard Access users can reach it the same way.
+        changesTree.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F10, java.awt.event.InputEvent.SHIFT_DOWN_MASK),
+                CONTEXT_MENU_ACTION);
+        changesTree.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_CONTEXT_MENU, 0), CONTEXT_MENU_ACTION);
+        changesTree.getActionMap().put(CONTEXT_MENU_ACTION, new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                java.awt.Point at = contextMenuLocation();
+                java.util.List<GitFileNode> selected = getSelectedFileNodes();
+                if (at != null && !selected.isEmpty()) {
+                    showContextMenu(at.x, at.y, selected);
+                }
+            }
+        });
+
         // Add keyboard listener for Space/Enter to toggle stage/unstage
         changesTree.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
@@ -1454,6 +1475,31 @@ public class GitPanel extends ViewTreePanel {
      * @param y    the y coordinate for the menu
      * @param node the selected Git file node
      */
+    /** Action key for opening the Changes context menu from the keyboard. */
+    static final String CONTEXT_MENU_ACTION = "git-changes-context-menu";
+
+    /**
+     * Where a keyboard-opened context menu goes: just inside the lead selected
+     * row, so it appears beside the file it acts on rather than at the corner
+     * of the panel. Null when nothing is selected.
+     */
+    java.awt.Point contextMenuLocation() {
+        int row = changesTree.getLeadSelectionRow();
+        if (row < 0 && changesTree.getSelectionCount() > 0) {
+            row = changesTree.getMinSelectionRow();
+        }
+        java.awt.Rectangle bounds = row < 0 ? null : changesTree.getRowBounds(row);
+        if (bounds == null) {
+            return null;
+        }
+        return new java.awt.Point(bounds.x + Math.min(24, bounds.width / 2), bounds.y + bounds.height);
+    }
+
+    /** The Changes tree. Package-private for tests. */
+    javax.swing.JTree changesTree() {
+        return changesTree;
+    }
+
     private void showContextMenu(int x, int y, java.util.List<GitFileNode> nodes) {
         if (nodes == null || nodes.isEmpty()) {
             return;
