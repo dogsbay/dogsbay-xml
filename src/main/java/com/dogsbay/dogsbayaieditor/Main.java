@@ -59,6 +59,8 @@ import com.dogsbay.dogsbayaieditor.properties.ConfigurationProperties;
  */
 public class Main {
 	static final int XMLPLUS_PORT = 9601;
+	/** How long to look for a running instance before starting a new one. */
+	static final int SINGLE_INSTANCE_CONNECT_TIMEOUT_MS = 500;
 
 	private static final boolean DEBUG = true;
 	private static DefaultAuthenticator authenticator = null;
@@ -651,10 +653,19 @@ public class Main {
 	 * Attempts to load DogsBayAIEditor in a single JVM instance only.
 	 */
 	protected Socket findDogsBayAIEditorSocket() {
+		// Loopback with a short timeout: the host's network address can take a name
+		// lookup or a firewall drop to fail, which on Windows hung startup silently.
+		Socket s = new Socket();
 		try {
-			Socket s = new Socket(InetAddress.getLocalHost(), XMLPLUS_PORT);
+			s.connect(new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), XMLPLUS_PORT),
+					SINGLE_INSTANCE_CONNECT_TIMEOUT_MS);
 			return s;
 		} catch (IOException e) {
+			try {
+				s.close();
+			} catch (IOException ignore) {
+				// nothing to release
+			}
 			// e.printStackTrace();
 			return null;
 		}
@@ -714,7 +725,8 @@ public class Main {
 			} else {
 				try {
 					// Start-up server-socket!
-					ServerSocket server = new ServerSocket(XMLPLUS_PORT);
+					// Loopback only: another instance on this machine is the only client.
+					ServerSocket server = new ServerSocket(XMLPLUS_PORT, 50, InetAddress.getLoopbackAddress());
 
 					start(loader, path);
 

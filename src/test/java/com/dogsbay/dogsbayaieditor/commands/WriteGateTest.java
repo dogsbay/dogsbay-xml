@@ -56,6 +56,14 @@ class WriteGateTest {
     private WriteGate gate;
     private Path topic;
 
+    @Test
+    void untitledPlaceholderIsAPathEveryPlatformAccepts() {
+        // Built when the class loads: a character Windows rejects stopped the editor starting there.
+        String name = WriteGate.ACTIVE.toString();
+        assertThat(name).doesNotContainPattern("[<>:\"|?*\\\\/]");
+        assertThat(WriteGate.ACTIVE.isAbsolute()).isFalse();
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         gate = new WriteGate(leases, () -> root, docs);

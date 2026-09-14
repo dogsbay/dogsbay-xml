@@ -13,7 +13,16 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Windows too: paths Windows rejects (a "<" in a Path.of) crashed the
+    # packaged editor there while every Linux run passed.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
       # Checked out into ./editor, matching the e2e workflow, which also
       # checks out the private demo corpus beside it.
@@ -48,6 +57,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results
+          name: test-results-${{ matrix.os }}
           path: editor/build/reports/tests/
           retention-days: 14

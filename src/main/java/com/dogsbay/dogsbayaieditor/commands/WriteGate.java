@@ -220,8 +220,12 @@ public final class WriteGate {
 
     // ── helpers ─────────────────────────────────────────────────────────
 
-    /** Stands in for an untitled active document, which has no path yet. */
-    static final Path ACTIVE = Path.of("<active-document>");
+    /**
+     * Stands in for an untitled active document, which has no path yet. Compared by
+     * identity, and relative where every real key is absolute, so it never matches a
+     * file. No characters Windows forbids in a path: this loads with the class.
+     */
+    static final Path ACTIVE = Path.of("active-document");
 
     /**
      * The identity of a document for leases and reads: its real path; the
