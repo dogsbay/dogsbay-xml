@@ -181,7 +181,7 @@ dependencies {
     implementation("org.yaml:snakeyaml:2.4")
 
     // Git Integration
-    implementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
 
     // Terminal Emulation
     implementation("org.jetbrains.jediterm:jediterm-ui:3.48")
