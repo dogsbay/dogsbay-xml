@@ -31,11 +31,20 @@ import com.dogsbay.xml.dita.DitaOtMessage;
  * @param outputDir the directory the output was written to (absolute)
  * @param success   true when DITA-OT produced no ERROR/FATAL diagnostics
  * @param messages  the captured diagnostics (errors and warnings), in log order
+ * @param tempDir   where DITA-OT's temporary files were kept (absolute), or null
+ *                  when the build did not keep them
  */
 public record DeliverableBuild(
     String name,
     String transtype,
     String outputDir,
     boolean success,
-    List<DitaOtMessage> messages
-) {}
+    List<DitaOtMessage> messages,
+    String tempDir
+) {
+    /** A build that did not keep its temporary files. */
+    public DeliverableBuild(String name, String transtype, String outputDir, boolean success,
+            List<DitaOtMessage> messages) {
+        this(name, transtype, outputDir, success, messages, null);
+    }
+}

@@ -267,6 +267,7 @@ public class DitaPlugin implements Plugin {
         // The build is the most-used command here, so it leads its group.
         addProjectGroup(ui, menuItem("Build Deliverables...", e -> editor.buildDeliverables()));
         addProjectGroup(ui, menuItem("Manage Deliverables...", e -> editor.manageDeliverables()));
+        addProjectGroup(ui, menuItem("Clear Temporary Build Files...", e -> editor.clearBuildTempFiles()));
     }
 
     /** Builds a menu item with its action already attached. */

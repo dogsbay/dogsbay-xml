@@ -875,19 +875,46 @@ public class HeadlessExecutor implements CommandExecutor {
 
         List<com.dogsbay.dogsbayaieditor.commands.results.DeliverableBuild> out =
                 new ArrayList<>();
+        // Kept temporary files are reported as absolute paths, one folder per deliverable.
+        java.nio.file.Path tempRoot = root.toAbsolutePath().normalize();
+        java.util.Set<String> usedTempDirs = new java.util.HashSet<>();
         try {
             for (com.dogsbay.dogsbayaieditor.ditaproject.Deliverable d : targets) {
                 java.io.File outputDir = resolveBuildOutputDir(cmd.outputBaseDir(), root, d).toFile();
-                java.io.File tempDir = tempBase.resolve(d.name()).toFile();
-                List<java.io.File> ditavals = withReviewFilter(d.ditavals(), tempDir.toPath());
+                java.io.File workDir = tempBase.resolve(d.name()).toFile();
+                List<java.io.File> ditavals = withReviewFilter(d.ditavals(), workDir.toPath());
                 Map<String, String> params = resolveDeliverableParams(d, root);
+                if (cmd.keepTemp() != null) {
+                    params.put(com.dogsbay.xml.dita.DitaOtBuilder.CLEAN_TEMP, cmd.keepTemp() ? "no" : "yes");
+                }
+                // Kept temporary files go in the project, replacing the previous build's;
+                // otherwise DITA-OT works under the scratch folder deleted below.
+                boolean keep = com.dogsbay.xml.dita.DitaOtBuilder.keepsTemp(params);
+                java.io.File tempDir = workDir;
+                if (keep) {
+                    java.nio.file.Path kept = DitaOtTemp.uniqueDir(tempRoot, d.name(), usedTempDirs);
+                    try {
+                        tempDir = DitaOtTemp.prepare(tempRoot, kept).toFile();
+                    } catch (java.io.IOException e) {
+                        // A locked folder (open in a file browser, a file in use) fails this
+                        // deliverable only; the others still build.
+                        out.add(new com.dogsbay.dogsbayaieditor.commands.results.DeliverableBuild(
+                                d.name(), d.transtype() != null ? d.transtype() : "html5",
+                                outputDir.toString(), false,
+                                List.of(new com.dogsbay.xml.dita.DitaOtMessage(null, "FATAL",
+                                        "Could not prepare the temporary folder " + kept + ": " + e.getMessage(),
+                                        kept.toString(), -1, -1)),
+                                null));
+                        continue;
+                    }
+                }
                 List<com.dogsbay.xml.dita.DitaOtMessage> msgs = builder.build(
                         d.map().toFile(), d.transtype(), ditavals, params, outputDir, tempDir);
                 boolean success = msgs.stream()
                         .noneMatch(com.dogsbay.xml.dita.DitaOtMessage::isError);
                 out.add(new com.dogsbay.dogsbayaieditor.commands.results.DeliverableBuild(
                         d.name(), d.transtype() != null ? d.transtype() : "html5",
-                        outputDir.toString(), success, msgs));
+                        outputDir.toString(), success, msgs, keep ? tempDir.toString() : null));
             }
         } finally {
             deleteRecursively(tempBase);

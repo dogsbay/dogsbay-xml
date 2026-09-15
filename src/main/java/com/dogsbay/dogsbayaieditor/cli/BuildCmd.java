@@ -50,11 +50,15 @@ class BuildCmd implements Callable<Integer> {
             + "project-configured engine path)")
     private String ditaOtHome;
 
+    @Option(names = "--keep-temp", description = "Keep DITA-OT's temporary files in "
+            + "<root>/.dogsbay/temp/<deliverable> (same as the clean.temp=no param)")
+    private boolean keepTemp;
+
     @Override
     public Integer call() throws Exception {
         var executor = new HeadlessExecutor();
-        var results = executor.execute(
-                new BuildDeliverablesCommand(root, output, deliverable, ditaOtHome));
+        var results = executor.execute(new BuildDeliverablesCommand(root, output, deliverable, ditaOtHome,
+                null, keepTemp ? Boolean.TRUE : null));
 
         if (results.isEmpty()) {
             System.out.println("No deliverables found (no project.{xml,json,yaml} and no "
@@ -68,6 +72,9 @@ class BuildCmd implements Callable<Integer> {
             System.out.printf("%s (%s) → %s: %s%s%n", b.name(), b.transtype(), b.outputDir(),
                     b.success() ? "OK" : "FAILED",
                     errors > 0 ? " — " + errors + " error(s)" : "");
+            if (b.tempDir() != null) {
+                System.out.printf("    temporary files kept in %s%n", b.tempDir());
+            }
             for (DitaOtMessage m : b.messages()) {
                 if (m.isError()) {
                     String loc = m.file() != null

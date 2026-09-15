@@ -605,15 +605,21 @@ public class McpServer implements HttpHandler {
             "Build a DITA project's deliverables with DITA-OT — each with its transtype, "
             + "DITAVAL filter(s), publication params, and output directory. Builds one "
             + "named deliverable or all. Returns one result per deliverable (name, "
-            + "transtype, outputDir, success, diagnostics). Requires DITA-OT; this runs "
-            + "full publishing, so it is slower than validation.",
+            + "transtype, outputDir, success, diagnostics, and tempDir when temporary files "
+            + "were kept). Requires DITA-OT; this runs full publishing, so it is slower than "
+            + "validation. To troubleshoot what DITA-OT resolved (conrefs, keys, filtering), "
+            + "build with keepTemp and read the preprocessed XML in tempDir.",
             "build-deliverables", schema(
                 prop("root", "string", "Project root directory", true),
                 prop("output", "string",
                     "Base output directory (each deliverable under a subdir); "
                     + "overrides the project's output", false),
                 prop("deliverable", "string",
-                    "Deliverable name to build (all deliverables if omitted)", false)
+                    "Deliverable name to build (all deliverables if omitted)", false),
+                prop("keepTemp", "boolean",
+                    "Keep DITA-OT's temporary files in <root>/.dogsbay/temp/<deliverable> "
+                    + "(true), or discard them (false); omitted follows each deliverable's "
+                    + "clean.temp param", false)
             )));
         list.add(new McpTool("validate_conditions",
             "Scan a DITA project or deliverable for profiling-attribute values "

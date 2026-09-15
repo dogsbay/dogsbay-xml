@@ -89,7 +89,8 @@ final class SubjectSchemeParser {
                 java.nio.file.Files.walk(root.toPath())) {
             for (java.nio.file.Path p : paths
                     .filter(x -> x.toString().toLowerCase(java.util.Locale.ROOT)
-                            .endsWith(".ditamap"))
+                            .endsWith(".ditamap")
+                            && !com.dogsbay.dogsbayaieditor.ditaproject.FileSet.inHiddenFolder(root.toPath(), x))
                     .sorted().toList()) {
                 Element rootEl = readRoot(p.toFile());
                 if (rootEl == null || !isSubjectScheme(rootEl)) {

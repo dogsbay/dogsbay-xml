@@ -32,6 +32,7 @@ import java.util.Locale;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -64,6 +65,7 @@ public final class DeliverableEditorDialog extends JDialog {
     private static final long serialVersionUID = 1L;
 
     private static final String[] TRANSTYPES = { "html5", "pdf", "pdf2", "xhtml", "markdown" };
+    private static final String CLEAN_TEMP = com.dogsbay.xml.dita.DitaOtBuilder.CLEAN_TEMP;
 
     private final Path projectDir;
     private final Deliverable existing;
@@ -74,6 +76,7 @@ public final class DeliverableEditorDialog extends JDialog {
     private JComboBox<String> ditavalCombo;
     private JComboBox<String> transtypeCombo;
     private JTextField outputField;
+    private JCheckBox keepTempBox;
     private DefaultTableModel paramsModel;
     private JTable paramsTable;
 
@@ -131,6 +134,16 @@ public final class DeliverableEditorDialog extends JDialog {
                 existing != null && existing.output() != null ? existing.output().toString() : "", 28);
         addRow(form, g, row++, "Output (optional):", outputField, null);
 
+        keepTempBox = new JCheckBox("Keep temporary files (clean.temp=no)");
+        keepTempBox.setSelected(existing != null && com.dogsbay.xml.dita.DitaOtBuilder.keepsTemp(
+                java.util.Map.of(CLEAN_TEMP, existing.params().stream()
+                        .filter(p -> ownsCleanTemp(p) && p.value() != null)
+                        .map(Param::value).reduce((a, b) -> b).orElse(""))));
+        keepTempBox.setToolTipText("<html>Keep the preprocessed files DITA-OT builds from, in "
+                + "<code>.dogsbay/temp/&lt;deliverable&gt;</code> in the project, to troubleshoot "
+                + "what DITA-OT resolved.<br>Each build replaces the previous build's files.</html>");
+        addRow(form, g, row++, "Troubleshooting:", keepTempBox, null);
+
         if (!preservedExtraDitavals.isEmpty()) {
             g.gridx = 1; g.gridy = row++; g.gridwidth = 2;
             form.add(new JLabel("<html><i>" + preservedExtraDitavals.size()
@@ -157,6 +170,9 @@ public final class DeliverableEditorDialog extends JDialog {
         paramsModel = new DefaultTableModel(new Object[] {"Name", "value", "href", "path"}, 0);
         if (existing != null) {
             for (Param p : existing.params()) {
+                if (ownsCleanTemp(p)) {
+                    continue;   // the Keep temporary files checkbox owns this param
+                }
                 Object[] r = {p.name(), "", "", ""};
                 switch (p.kind()) {
                     case VALUE -> r[1] = p.value();
@@ -262,6 +278,11 @@ public final class DeliverableEditorDialog extends JDialog {
         return v == null ? "" : v.toString().trim();
     }
 
+    /** A plain-value {@code clean.temp} param, which the checkbox shows; href and path forms stay in the table. */
+    private static boolean ownsCleanTemp(Param p) {
+        return CLEAN_TEMP.equals(p.name()) && p.kind() == Param.Kind.VALUE;
+    }
+
     private static String cell(DefaultTableModel m, int row, int col) {
         Object v = m.getValueAt(row, col);
         return v == null ? "" : v.toString().trim();
@@ -297,8 +318,8 @@ public final class DeliverableEditorDialog extends JDialog {
         List<Param> params = new ArrayList<>();
         for (int i = 0; i < paramsModel.getRowCount(); i++) {
             String pn = cell(paramsModel, i, 0);
-            if (pn.isEmpty()) {
-                continue; // a blank-name row is skipped
+            if (pn.isEmpty() || (CLEAN_TEMP.equals(pn) && keepTempBox.isSelected())) {
+                continue; // a blank-name row is skipped; a checked box writes clean.temp itself
             }
             String val = cell(paramsModel, i, 1);
             String href = cell(paramsModel, i, 2);
@@ -311,6 +332,10 @@ public final class DeliverableEditorDialog extends JDialog {
             } else {
                 params.add(new Param(pn, val, Param.Kind.VALUE));
             }
+        }
+
+        if (keepTempBox.isSelected()) {
+            params.add(Param.value(CLEAN_TEMP, "no"));
         }
 
         String transtype = comboText(transtypeCombo);

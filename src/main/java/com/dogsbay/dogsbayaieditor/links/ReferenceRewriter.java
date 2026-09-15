@@ -706,7 +706,8 @@ public final class ReferenceRewriter {
         try (var paths = Files.walk(root.toPath())) {
             for (Path path : paths.filter(p -> {
                         String name = p.toString().toLowerCase();
-                        return name.endsWith(".dita") || name.endsWith(".ditamap");
+                        return (name.endsWith(".dita") || name.endsWith(".ditamap"))
+                                && !com.dogsbay.dogsbayaieditor.ditaproject.FileSet.inHiddenFolder(root.toPath(), p);
                     }).sorted().toList()) {
                 String content = Files.readString(path, StandardCharsets.UTF_8);
                 java.util.Set<String> seenValues = new java.util.HashSet<>();
@@ -741,8 +742,9 @@ public final class ReferenceRewriter {
         java.util.regex.Pattern propPattern =
                 java.util.regex.Pattern.compile("<prop\\b[^>]*>");
         try (var paths = Files.walk(root.toPath())) {
-            for (Path path : paths.filter(p -> p.toString().toLowerCase()
-                    .endsWith(".ditaval")).sorted().toList()) {
+            for (Path path : paths.filter(p -> p.toString().toLowerCase().endsWith(".ditaval")
+                    && !com.dogsbay.dogsbayaieditor.ditaproject.FileSet.inHiddenFolder(root.toPath(), p))
+                    .sorted().toList()) {
                 String content = Files.readString(path, StandardCharsets.UTF_8);
                 java.util.regex.Matcher m = propPattern.matcher(content);
                 while (m.find()) {

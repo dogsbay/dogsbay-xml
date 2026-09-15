@@ -43,17 +43,28 @@ import com.dogsbay.dogsbayaieditor.commands.results.DeliverableBuild;
  *                         deliverable whose name is in the set (so same-named ones all
  *                         build); takes precedence over {@code deliverable}. Null/empty ⇒
  *                         fall back to {@code deliverable} (single or all).
+ * @param keepTemp         keep DITA-OT's temporary files in
+ *                         {@code <root>/.dogsbay/temp/<deliverable>}: true or false
+ *                         overrides every deliverable's {@code clean.temp} param; null
+ *                         follows each deliverable's own {@code clean.temp}
  */
 public record BuildDeliverablesCommand(
     String root,
     String outputBaseDir,
     String deliverable,
     String ditaOtHome,
-    List<String> deliverableNames
+    List<String> deliverableNames,
+    Boolean keepTemp
 ) implements Command<List<DeliverableBuild>> {
 
     /** One named deliverable (or all when {@code deliverable} is null). */
     public BuildDeliverablesCommand(String root, String outputBaseDir, String deliverable, String ditaOtHome) {
-        this(root, outputBaseDir, deliverable, ditaOtHome, null);
+        this(root, outputBaseDir, deliverable, ditaOtHome, null, null);
+    }
+
+    /** The named deliverables, each keeping temporary files as its own params say. */
+    public BuildDeliverablesCommand(String root, String outputBaseDir, String deliverable, String ditaOtHome,
+            List<String> deliverableNames) {
+        this(root, outputBaseDir, deliverable, ditaOtHome, deliverableNames, null);
     }
 }

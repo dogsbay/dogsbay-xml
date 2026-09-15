@@ -20,12 +20,18 @@ package com.dogsbay.xml.dita;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
+import org.apache.tools.ant.Project;
+import org.apache.tools.ant.ProjectHelper;
 import org.dita.dost.Processor;
 import org.dita.dost.ProcessorFactory;
 import org.dita.dost.exception.DITAOTException;
+import org.dita.dost.log.LoggerListener;
+import org.dita.dost.util.Configuration;
 
 /**
  * Builds a deliverable with DITA-OT to a real output directory, applying its
@@ -35,11 +41,22 @@ import org.dita.dost.exception.DITAOTException;
  * <p>Unlike {@link DitaOtValidator} (which runs the {@code dita} preprocess and
  * discards output), this runs the deliverable's real {@code transtype} and keeps
  * the generated output. The class is pure (no Swing); run it off the EDT.
+ *
+ * <p><b>Keeping temporary files.</b> DITA-OT's Java {@link Processor} deletes its
+ * temporary folder after every successful run, whatever {@code clean.temp} says:
+ * {@code clean.temp} only controls DITA-OT's own clean-up step, and the processor
+ * then removes the folder itself. So when the params ask for
+ * {@code clean.temp=no}, the build runs DITA-OT's Ant project directly, exactly as
+ * the processor does but without that final delete, the way the {@code dita}
+ * command honours {@code --clean.temp=no}.
  */
 public final class DitaOtBuilder {
 
     private static final String DEFAULT_TRANSTYPE = "html5";
+    /** The DITA-OT parameter that keeps the temporary files. */
+    public static final String CLEAN_TEMP = "clean.temp";
 
+    private final File ditaOtHome;
     private final ProcessorFactory processorFactory;
 
     /**
@@ -47,12 +64,13 @@ public final class DitaOtBuilder {
      * @throws IOException if the directory is missing or not a directory
      */
     public DitaOtBuilder(String ditaOtHomePath) throws IOException {
-        File ditaOtHome = new File(ditaOtHomePath);
-        if (!ditaOtHome.exists() || !ditaOtHome.isDirectory()) {
+        File home = new File(ditaOtHomePath);
+        if (!home.exists() || !home.isDirectory()) {
             throw new IOException("DITA-OT home directory does not exist: " + ditaOtHomePath);
         }
         System.setProperty("javax.xml.parsers.SAXParserFactory",
                 "org.apache.xerces.jaxp.SAXParserFactoryImpl");
+        this.ditaOtHome = home.getAbsoluteFile();
         this.processorFactory = ProcessorFactory.newInstance(ditaOtHome);
     }
 
@@ -65,7 +83,11 @@ public final class DitaOtBuilder {
      * @param ditavals   DITAVAL filters to apply (may be empty/null)
      * @param params     DITA-OT parameters, already resolved to absolute where needed
      * @param outputDir  the (kept) output directory
-     * @param baseTempDir DITA-OT's working/temp directory (caller cleans up)
+     * @param baseTempDir DITA-OT's working/temp directory (caller cleans up). When the
+     *                   params keep temporary files ({@link #keepsTemp}), DITA-OT
+     *                   writes its temporary files directly into this folder and
+     *                   leaves them there; otherwise it works in a subfolder it
+     *                   deletes when the build succeeds.
      * @return the captured diagnostics, in log order; build is considered failed
      *         when any are ERROR/FATAL
      */
@@ -77,38 +99,101 @@ public final class DitaOtBuilder {
         }
         baseTempDir.mkdirs();
         outputDir.mkdirs();
+        String type = transtype != null && !transtype.isBlank() ? transtype : DEFAULT_TRANSTYPE;
+        Map<String, String> properties = properties(params, ditavals);
+        if (keepsTemp(params)) {
+            return buildKeepingTemp(inputMap, type, properties, outputDir, baseTempDir);
+        }
         processorFactory.setBaseTempDir(baseTempDir);
 
         CollectingDitaOtLogger logger = new CollectingDitaOtLogger();
         try {
-            Processor processor = processorFactory.newProcessor(
-                            transtype != null && !transtype.isBlank() ? transtype : DEFAULT_TRANSTYPE)
+            Processor processor = processorFactory.newProcessor(type)
                     .setInput(inputMap)
                     .setOutputDir(outputDir)
                     .setLogger(logger);
-            String paramFilter = null;
-            if (params != null) {
-                for (Map.Entry<String, String> e : params.entrySet()) {
-                    if (e.getValue() == null) {
-                        continue;
-                    }
-                    if ("args.filter".equals(e.getKey())) {
-                        paramFilter = e.getValue();   // joins the list instead of replacing it
-                    } else {
-                        processor.setProperty(e.getKey(), e.getValue());
-                    }
-                }
-            }
-            String filter = joinFilters(ditavals, paramFilter);
-            if (filter != null) {
-                processor.setProperty("args.filter", filter);
-            }
+            properties.forEach(processor::setProperty);
             processor.run();
         } catch (DITAOTException | RuntimeException e) {
             logger.messages().add(new DitaOtMessage(null, "FATAL",
                     "DITA-OT build aborted: " + describe(e), inputMap.getPath(), -1, -1));
         }
         return logger.messages();
+    }
+
+    /** True when the params ask DITA-OT to keep its temporary files ({@code clean.temp} of no or false). */
+    public static boolean keepsTemp(Map<String, String> params) {
+        String value = params == null ? null : params.get(CLEAN_TEMP);
+        return value != null && (value.trim().equalsIgnoreCase("no") || value.trim().equalsIgnoreCase("false"));
+    }
+
+    /** The params (without nulls) plus the joined filter, as DITA-OT properties. */
+    private static Map<String, String> properties(Map<String, String> params, List<File> ditavals) {
+        Map<String, String> properties = new LinkedHashMap<>();
+        String paramFilter = null;
+        if (params != null) {
+            for (Map.Entry<String, String> e : params.entrySet()) {
+                if (e.getValue() == null) {
+                    continue;
+                }
+                if ("args.filter".equals(e.getKey())) {
+                    paramFilter = e.getValue();   // joins the list instead of replacing it
+                } else {
+                    properties.put(e.getKey(), e.getValue());
+                }
+            }
+        }
+        String filter = joinFilters(ditavals, paramFilter);
+        if (filter != null) {
+            properties.put("args.filter", filter);
+        }
+        return properties;
+    }
+
+    /**
+     * Run DITA-OT's Ant project as {@link Processor#run} does (same build file, base
+     * directory, target and properties), with {@code tempDir} as the temporary folder
+     * and without deleting it afterwards.
+     */
+    private List<DitaOtMessage> buildKeepingTemp(File inputMap, String transtype, Map<String, String> properties,
+            File outputDir, File tempDir) {
+        CollectingDitaOtLogger logger = new CollectingDitaOtLogger();
+        try {
+            Project project = new Project();
+            project.setCoreLoader(getClass().getClassLoader());
+            project.addBuildListener(new LoggerListener(logger));
+            // Processor.run fires build-started but never build-finished (which clears
+            // Ant's JVM-wide introspection cache); this matches it.
+            project.fireBuildStarted();
+            project.init();
+            project.setBaseDir(ditaOtHome);
+            project.setKeepGoingMode(false);
+            project.setUserProperty("dita.dir", ditaOtHome.getAbsolutePath());
+            project.setUserProperty("transtype", transtype);
+            project.setUserProperty("args.input", inputMap.getAbsoluteFile().toURI().toString());
+            project.setUserProperty("output.dir", outputDir.getAbsolutePath());
+            File parent = tempDir.getAbsoluteFile().getParentFile();
+            if (parent != null) {
+                project.setUserProperty("base.temp.dir", parent.getAbsolutePath());
+            }
+            properties.forEach(project::setUserProperty);
+            // Set last so a param cannot move or clean the folder the caller owns.
+            project.setUserProperty("dita.temp.dir", tempDir.getAbsolutePath());
+            project.setUserProperty(CLEAN_TEMP, "no");
+            ProjectHelper.configureProject(project, buildFile());
+            project.executeTargets(new Vector<>(List.of("dita2" + transtype)));
+        } catch (RuntimeException e) {
+            logger.messages().add(new DitaOtMessage(null, "FATAL",
+                    "DITA-OT build aborted: " + describe(e), inputMap.getPath(), -1, -1));
+        }
+        return logger.messages();
+    }
+
+    /** The build file the processor uses: {@code org.dita.base}'s, else the home's. */
+    private File buildFile() {
+        File base = Configuration.pluginResourceDirs.get("org.dita.base");
+        File file = base == null ? null : new File(new File(ditaOtHome, base.getPath()), "build.xml");
+        return file != null && file.isFile() ? file : new File(ditaOtHome, "build.xml");
     }
 
     /** The DITAVAL list, then any {@code args.filter} param, as one path list; null when both are empty. */

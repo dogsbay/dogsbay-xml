@@ -1770,7 +1770,8 @@ public class DogsBayAIEditor extends StatusFrame implements DogsBayDocumentListe
 						sb.append(b.success() ? "  OK    " : "  FAILED").append("  ")
 								.append(b.name()).append(" (").append(b.transtype()).append(")")
 								.append(errs > 0 ? " — " + errs + " error(s)" : "")
-								.append("\n      → ").append(b.outputDir()).append("\n");
+								.append("\n      → ").append(b.outputDir()).append("\n")
+									.append(b.tempDir() != null ? "      temporary files → " + b.tempDir() + "\n" : "");
 					}
 					javax.swing.JTextArea area = new javax.swing.JTextArea(sb.toString());
 					area.setEditable(false);
@@ -1802,7 +1803,12 @@ public class DogsBayAIEditor extends StatusFrame implements DogsBayDocumentListe
 							javax.swing.JOptionPane.DEFAULT_OPTION,
 							failed > 0 ? javax.swing.JOptionPane.WARNING_MESSAGE
 									: javax.swing.JOptionPane.INFORMATION_MESSAGE,
-							null, new String[] { "Open Output Folder", "OK" }, "OK");
+							null, results.stream().anyMatch(b -> b.tempDir() != null)
+										? new String[] { "Open Output Folder", "Open Temp Folder", "OK" }
+										: new String[] { "Open Output Folder", "OK" }, "OK");
+						if (choice == 1 && results.stream().anyMatch(b -> b.tempDir() != null)) {
+							openBuildTemp(results);
+						}
 					if (choice == 0) {
 						try {
 							// Open the first build's actual output dir (generated HTML/PDF),
@@ -1830,6 +1836,58 @@ public class DogsBayAIEditor extends StatusFrame implements DogsBayDocumentListe
 				}
 			}
 		}.execute();
+	}
+
+	/** Open the first temporary folder a build kept, in the system file browser. */
+	private void openBuildTemp(java.util.List<com.dogsbay.dogsbayaieditor.commands.results.DeliverableBuild> results) {
+		for (var b : results) {
+			if (b.tempDir() != null && new java.io.File(b.tempDir()).isDirectory()) {
+				try {
+					if (java.awt.Desktop.isDesktopSupported()) {
+						java.awt.Desktop.getDesktop().open(new java.io.File(b.tempDir()));
+					}
+				} catch (Exception ignore) {
+					// the path is shown in the results
+				}
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Project &gt; Clear Temporary Build Files: removes the DITA-OT temporary files
+	 * that builds kept in {@code .dogsbay/temp}.
+	 */
+	public void clearBuildTempFiles() {
+		java.nio.file.Path root = projectRootForAgents();
+		if (root == null) {
+			javax.swing.JOptionPane.showMessageDialog(this, "Open a project first.",
+					"Clear Temporary Build Files", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		java.nio.file.Path folder = com.dogsbay.dogsbayaieditor.commands.DitaOtTemp.folder(root);
+		if (!java.nio.file.Files.isDirectory(folder)) {
+			javax.swing.JOptionPane.showMessageDialog(this, "No builds in this project kept temporary files.",
+					"Clear Temporary Build Files", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		int confirm = javax.swing.JOptionPane.showConfirmDialog(this,
+				"Delete the temporary files that DITA-OT builds kept in\n" + folder + " ?",
+				"Clear Temporary Build Files", javax.swing.JOptionPane.OK_CANCEL_OPTION,
+				javax.swing.JOptionPane.QUESTION_MESSAGE);
+		if (confirm != javax.swing.JOptionPane.OK_OPTION) {
+			return;
+		}
+		try {
+			int removed = com.dogsbay.dogsbayaieditor.commands.DitaOtTemp.clear(root);
+			javax.swing.JOptionPane.showMessageDialog(this,
+					"Removed the temporary files of " + removed + " deliverable(s).",
+					"Clear Temporary Build Files", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+		} catch (java.io.IOException e) {
+			javax.swing.JOptionPane.showMessageDialog(this,
+					"Could not remove every temporary file:\n" + e.getMessage(),
+					"Clear Temporary Build Files", javax.swing.JOptionPane.WARNING_MESSAGE);
+		}
 	}
 
 	public DocumentManager getDocumentManager() {

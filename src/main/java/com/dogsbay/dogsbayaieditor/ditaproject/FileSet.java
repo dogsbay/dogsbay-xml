@@ -139,10 +139,31 @@ public final class FileSet {
         }
     }
 
-    /** Every XML-ish file under the project root. */
+    /**
+     * True when {@code file} sits in a hidden folder below {@code root}, such as
+     * {@code .git} or {@code .dogsbay} (which holds DITA-OT temporary files that
+     * builds keep). Project-wide scans skip these, as {@code ProjectMaps} does.
+     */
+    public static boolean inHiddenFolder(Path root, Path file) {
+        Path rel;
+        try {
+            rel = root.toAbsolutePath().normalize().relativize(file.toAbsolutePath().normalize());
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+        for (int i = 0; i < rel.getNameCount() - 1; i++) {
+            if (rel.getName(i).toString().startsWith(".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Every XML-ish file under the project root, outside hidden folders. */
     public static List<Path> underRoot(Path projectRoot) throws IOException {
         try (Stream<Path> walk = Files.walk(projectRoot, 20)) {
             return walk.filter(Files::isRegularFile)
+                    .filter(p -> !inHiddenFolder(projectRoot, p))
                     .filter(FileSet::isXmlish)
                     .sorted()
                     .toList();

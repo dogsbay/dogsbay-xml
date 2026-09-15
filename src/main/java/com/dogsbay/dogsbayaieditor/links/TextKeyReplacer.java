@@ -64,8 +64,9 @@ public final class TextKeyReplacer {
     public static List<Occurrence> scan(File root, String text) throws IOException {
         List<Occurrence> occurrences = new ArrayList<>();
         try (var paths = Files.walk(root.toPath())) {
-            for (var path : paths.filter(p -> p.toString().toLowerCase()
-                    .endsWith(".dita")).sorted().toList()) {
+            for (var path : paths.filter(p -> p.toString().toLowerCase().endsWith(".dita")
+                    && !com.dogsbay.dogsbayaieditor.ditaproject.FileSet.inHiddenFolder(root.toPath(), p))
+                    .sorted().toList()) {
                 String content = Files.readString(path, StandardCharsets.UTF_8);
                 for (int[] span : occurrenceSpans(content, text)) {
                     occurrences.add(new Occurrence(path.toFile(),

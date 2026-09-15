@@ -122,6 +122,22 @@ public final class DefaultDitaOtFramework {
         return false;
     }
 
+    /** True when this build carries the bundled DITA-OT framework. */
+    public static boolean isBundled() {
+        return DefaultDitaOtFramework.class.getResource(RESOURCE) != null;
+    }
+
+    /**
+     * Extract the bundled framework into {@code destDir}, for callers that need a
+     * working DITA-OT without registering it (such as tests).
+     *
+     * @return the DITA-OT home inside {@code destDir}
+     */
+    public static File extractBundled(File destDir) throws IOException {
+        extractResourceZip(destDir);
+        return new File(destDir, "dita-ot");
+    }
+
     /** Extract the bundled framework zip into {@code destDir} (created if absent). */
     private static void extractResourceZip(File destDir) throws IOException {
         Path destRoot = destDir.toPath().toAbsolutePath().normalize();

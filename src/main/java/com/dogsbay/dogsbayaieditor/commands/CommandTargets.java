@@ -105,7 +105,8 @@ public record CommandTargets(Scope scope, List<Path> files, Path root, boolean a
             case RenameProfileValueCommand c -> tree(c.root());
             case SplitTopicCommand c -> tree(c.root(), c.file(), c.map());
             case MetadataSetCommand c -> tree(c.root());
-            case BuildDeliverablesCommand c -> tree(c.outputBaseDir() != null ? c.outputBaseDir() : c.root());
+            // The root as well as any output base: kept temporary files go in <root>/.dogsbay/temp.
+            case BuildDeliverablesCommand c -> tree(c.root(), buildOutput(c));
 
             // Read-only
             case ValidateCommand c -> NONE;
@@ -205,6 +206,15 @@ public record CommandTargets(Scope scope, List<Path> files, Path root, boolean a
 
     private static Path path(String s) {
         return s == null || s.isBlank() ? null : Path.of(s);
+    }
+
+    /** A build's output base as the executor uses it: a relative path is relative to the project root. */
+    private static String buildOutput(BuildDeliverablesCommand c) {
+        if (c.outputBaseDir() == null || c.outputBaseDir().isBlank() || c.root() == null || c.root().isBlank()
+                || Path.of(c.outputBaseDir()).isAbsolute()) {
+            return c.outputBaseDir();
+        }
+        return Path.of(c.root()).resolve(c.outputBaseDir()).toString();
     }
 
     /** A report's output as the executor writes it: a relative path is relative to the project root. */

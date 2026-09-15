@@ -93,7 +93,7 @@ public class EditorExecutor implements CommandExecutor {
                     ? new ValidateDeepCommand(c.root(), c.deliverable(), c.map(), editorDitaOt(c.root())) : c);
             case BuildDeliverablesCommand c -> headless.execute(blank(c.ditaOtHome())
                     ? new BuildDeliverablesCommand(c.root(), c.outputBaseDir(), c.deliverable(), editorDitaOt(c.root()),
-                            c.deliverableNames())
+                            c.deliverableNames(), c.keepTemp())
                     : c);
             case ValidateConditionsCommand c -> headless.execute(c);
             case ListSubjectsCommand c -> headless.execute(c);

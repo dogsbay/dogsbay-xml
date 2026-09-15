@@ -313,8 +313,15 @@ public class JsonRpcHandler {
                 String output = params.has("output") ? params.get("output").asText(null) : null;
                 String deliverable = params.has("deliverable")
                         ? params.get("deliverable").asText(null) : null;
+                // Only an explicit true or false overrides the deliverables' clean.temp;
+                // anything else ("yes", "1") follows the params rather than turning into false.
+                com.fasterxml.jackson.databind.JsonNode keepNode = params.get("keepTemp");
+                Boolean keepTemp = keepNode == null ? null
+                        : keepNode.isBoolean() ? Boolean.valueOf(keepNode.booleanValue())
+                        : "true".equalsIgnoreCase(keepNode.asText()) ? Boolean.TRUE
+                        : "false".equalsIgnoreCase(keepNode.asText()) ? Boolean.FALSE : null;
                 yield executor.execute(
-                        new BuildDeliverablesCommand(root, output, deliverable, null));
+                        new BuildDeliverablesCommand(root, output, deliverable, null, null, keepTemp));
             }
             case "validate-conditions" -> {
                 String root = params.get("root").asText();
