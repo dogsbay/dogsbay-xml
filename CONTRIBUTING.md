@@ -35,7 +35,9 @@ requests.
   don't have it installed).
 - Git.
 
-The `lib/` directory of vendored jars is required to build — do not delete it.
+The `lib/` directory is required to build — do not delete it. It holds two kinds of jar at once: the ones with no Maven artifact, which are committed and are source, and the ones `./gradlew syncLib` copies in from Maven so that `run.sh` and `bin/dogsbay-xml` can use `lib/*`, which are build output and are gitignored. `syncLib` also removes the copies left by versions the build has moved off, so after pulling a dependency change, run it rather than deleting jars by hand. `./gradlew checkLib`, part of `check`, fails if the two kinds ever get mixed up.
+
+Both of those need a git repository to tell the kinds apart, so in a source zip rather than a clone they stand down and say so. A clone is the better way to build.
 
 ## Build & test
 

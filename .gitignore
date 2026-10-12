@@ -1,5 +1,9 @@
 target/
-build/
+# Anchored, and one level down for the modules: a bare "build/" matches a directory of
+# that name anywhere, which quietly swallowed a src/test/java/com/dogsbay/build package —
+# the test in it ran locally and could never have been committed.
+/build/
+*/build/
 build.log
 .gradle/
 .vscode/
@@ -31,13 +35,12 @@ lib/xagent-core-*.jar
 # listed below. `./gradlew checkLib` fails if the two ever get mixed up.
 lib/*.jar
 !lib/AppleJavaExtensions.jar
-!lib/avalon-framework.jar
 !lib/bounce.jar
 !lib/commons.jar
+!lib/dita-index.jar
 !lib/dom4j.jar
 !lib/dost-configuration.jar
 !lib/dost.jar
-!lib/fop.jar
 !lib/jaxen-1.1.1.jar
 !lib/jdom.jar
 !lib/l2fprod-common-directorychooser.jar

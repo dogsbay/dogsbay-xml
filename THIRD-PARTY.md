@@ -185,7 +185,7 @@ Declared licence as published in each artifact's POM.
 | org.ow2.asm:asm-util | 9.10.1 | BSD-3-Clause |
 | org.relaxng:jing | 20241231 | 3-clause BSD license |
 | org.relaxng:trang | 20241231 | 3-clause BSD license |
-| org.slf4j:jul-to-slf4j | 2.0.17 | MIT |
+| org.slf4j:jul-to-slf4j | 2.0.18 | MIT |
 | org.slf4j:slf4j-api | 2.0.18 | MIT |
 | org.xmlresolver:xmlresolver | 5.3.3 | Apache License version 2.0 |
 | org.yaml:snakeyaml | 2.5 | Apache License, Version 2.0 |
