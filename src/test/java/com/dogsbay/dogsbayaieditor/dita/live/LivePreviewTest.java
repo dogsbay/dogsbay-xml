@@ -159,7 +159,14 @@ class LivePreviewTest {
             Thread.sleep(2000);
             assertThat(changes.get()).as("published output is not a source change").isZero();
             Files.writeString(project.resolve("topics/a.dita"), "<topic/>");
-            Thread.sleep(2000);
+            // Waited rather than slept: the JDK has no native file-event source on macOS, so
+            // WatchService there polls — a fixed two seconds saw nothing and the test failed on a
+            // change the watcher went on to report. The negative assertion above stays a fixed wait
+            // because waiting longer cannot make a count of zero more true.
+            long deadline = System.currentTimeMillis() + 30_000;
+            while (changes.get() == 0 && System.currentTimeMillis() < deadline) {
+                Thread.sleep(100);
+            }
             assertThat(changes.get()).as("a source change still republishes").isEqualTo(1);
         }
     }

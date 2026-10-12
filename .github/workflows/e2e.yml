@@ -12,8 +12,16 @@ concurrency:
 
 # End-to-end proof that the assembled headless CLI actually processes real DITA:
 # build the editor, then run the DITA audits against the demo corpus
-# (dogsbay/dogsbay-xml-dita-tutorial) and assert the PLANTED issues still surface.
-# This catches audit regressions that the unit tests (synthetic fixtures) miss.
+# (dogsbay/dogsbay-xml-dita-tutorial) and assert the audits still find real faults in
+# it. This catches audit regressions that the unit tests (synthetic fixtures) miss.
+#
+# The faults are planted HERE, in the throwaway checkout, not carried by the corpus.
+# They used to live in it: the corpus was the broken demo project, and this workflow
+# grepped for the issues it shipped with. That corpus is now the finished guide — the
+# healthy reference a learner compares their own work against — so the assertions
+# failed on a repository that had become correct. Each audit is now run twice, clean
+# then planted, which also proves the audit reacted rather than matched something
+# incidental.
 #
 # The corpus repository is public, so this runs everywhere, forks included:
 # there is no secret to withhold from them and no reason to skip the one check
@@ -70,7 +78,7 @@ jobs:
         # greps then reported the planted issues as missing.
         run: ./gradlew syncLib classes --console=plain
 
-      - name: Run DITA audits and assert planted issues
+      - name: Run DITA audits, over faults planted here
         shell: bash
         run: |
           set -uo pipefail
@@ -87,38 +95,78 @@ jobs:
             exit 1
           fi
 
-          check() {  # check <label> <expected-substring> <command...>
-            local label="$1" expect="$2"; shift 2
+          plant() {  # plant <file> <sed-expression> <description>
+            local f="$DEMO/$1" expr="$2" what="$3"
+            local before after
+            before="$(sha256sum "$f" | cut -d' ' -f1)"
+            sed -i "$expr" "$f"
+            after="$(sha256sum "$f" | cut -d' ' -f1)"
+            if [ "$before" = "$after" ]; then
+              echo "::error title=Plant failed::$1 is unchanged by the edit for '$what'. Has the corpus been restructured?"
+              exit 1
+            fi
+            echo "planted: $what ($1)"
+          }
+
+          run() {  # run <label> <command...> — echoes the output for the caller to match
+            local label="$1"; shift
             echo "::group::$label"
             local out; out="$("$@" 2>&1 || true)"
             echo "$out"
             echo "::endgroup::"
+            printf '%s' "$out"
+          }
+
+          absent() {  # absent <label> <substring> <command...>
+            local label="$1" expect="$2"; shift 2
+            local out; out="$(run "before planting — $label" "$@")"
             if printf '%s' "$out" | grep -qF -- "$expect"; then
-              echo "✅ $label — found: $expect"
+              echo "::error::$label — the clean corpus already reports '$expect', so the assertion below would pass without the plant."
+              fail=1
+            else
+              echo "clean: $label does not report it yet"
+            fi
+          }
+
+          check() {  # check <label> <substring> <command...>
+            local label="$1" expect="$2"; shift 2
+            local out; out="$(run "$label" "$@")"
+            if printf '%s' "$out" | grep -qF -- "$expect"; then
+              echo "$label — found: $expect"
             else
               echo "::error::$label — expected planted issue not found: $expect"
               fail=1
             fi
           }
 
-          # index-audit: dangling "see" redirect to a non-existent entry.
-          check "index-audit dangling see" \
-            "see 'codecs' (no such entry)" \
+          # Each audit runs twice: over the clean corpus, where its finding must be ABSENT, and
+          # again once its fault is planted, where it must appear. So a pass means the audit
+          # reacted to the plant, not that the corpus happens to contain something that matches.
+
+          absent "index-audit dangling see" "see 'codecs' (no such entry)" \
+            "$DB" index-audit "$DEMO"
+          plant topics/exporting-audio.dita \
+            's|<indexterm>exporting</indexterm>|<indexterm>exporting</indexterm><indexterm>codec<index-see>codecs</index-see></indexterm>|' \
+            'an index-see redirect to an entry that does not exist'
+          check "index-audit dangling see" "see 'codecs' (no such entry)" \
             "$DB" index-audit "$DEMO"
 
-          # conref-push-audit: orphan pushbefore with no mark sibling.
-          check "conref-push-audit orphan pushbefore" \
-            'pushbefore has no sibling conaction="mark"' \
+          absent "conref-push-audit orphan pushbefore" 'pushbefore has no sibling conaction="mark"' \
+            "$DB" conref-push-audit "$DEMO"
+          plant shared/common-steps.dita 's| conaction="mark"||' \
+            'the mark step the pushbefore depends on loses its conaction'
+          check "conref-push-audit orphan pushbefore" 'pushbefore has no sibling conaction="mark"' \
             "$DB" conref-push-audit "$DEMO"
 
-          # glossary-audit: abbreviated-form keyref typo (gl-bitdepth) resolves
-          # to no glossentry.
-          check "glossary-audit undefined keyref" \
-            'keyref="gl-bitdepth"' \
+          absent "glossary-audit undefined keyref" 'keyref="gl-bitdepth"' \
+            "$DB" glossary-audit "$DEMO" --root-map "$DEMO/audacity-guide.ditamap"
+          plant topics/what-is-digital-audio.dita 's|keyref="gl-bit-depth"|keyref="gl-bitdepth"|' \
+            'a glossary keyref typo that resolves to no glossentry'
+          check "glossary-audit undefined keyref" 'keyref="gl-bitdepth"' \
             "$DB" glossary-audit "$DEMO" --root-map "$DEMO/audacity-guide.ditamap"
 
           if [ "$fail" -ne 0 ]; then
             echo "::error::One or more planted issues were not detected — audit regression?"
             exit 1
           fi
-          echo "All planted issues detected — CLI ↔ corpus e2e passed."
+          echo "Every planted issue was detected, and none of them was reported before planting."

@@ -151,12 +151,12 @@ class EditStructureCommandTest {
                 .hasMessageContaining("step 1 has no field \"selector\"");
         var container = new ObjectMapper().readTree("""
                 {"file": "%s", "steps": [{"op": "set-text", "select": "//cmd[1]", "text": {"b": "x"}}]}
-                """.formatted(file.toString().replace("\\\\", "\\\\\\\\")));
+                """.formatted(file.toString().replace("\\", "\\\\")));
         assertThatThrownBy(() -> new JsonRpcHandler(executor).dispatch("edit-structure", container))
                 .hasMessageContaining("field \"text\" must be a string");
         var dryRun = new ObjectMapper().readTree("""
                 {"file": "%s", "dryRun": "yes", "steps": [{"op": "delete", "select": "//step[@platform='linux']"}]}
-                """.formatted(file.toString().replace("\\\\", "\\\\\\\\")));
+                """.formatted(file.toString().replace("\\", "\\\\")));
         assertThatThrownBy(() -> new JsonRpcHandler(executor).dispatch("edit-structure", dryRun))
                 .hasMessageContaining("dryRun must be true or false");
         assertThat(Files.readString(file)).isEqualTo(TOPIC);

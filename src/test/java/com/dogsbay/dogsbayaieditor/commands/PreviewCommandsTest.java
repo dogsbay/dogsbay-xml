@@ -125,6 +125,12 @@ class PreviewCommandsTest {
 
     @Test
     void aProcessThatIsNotAPreviewIsNeverEnded() throws Exception {
+        // Both of these turn on the editor being able to read another process's command line and see
+        // that it is not a preview's (PreviewCommands.isPreview, which assumes "it is a preview" when
+        // the line is unreadable, so as never to kill something it cannot identify). Windows does not
+        // hand out another process's command line, so there is nothing to tell apart there.
+        org.junit.jupiter.api.Assumptions.assumeTrue(other.info().commandLine().isPresent(),
+                "this OS does not expose another process's command line");
         // an entry naming an unrelated process (its id reused, say): refused, and the process left alone
         PreviewRegistry.put(entry(other.pid(), "cli", "site"));
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> PreviewCommands.stop(root, null, p -> { }))

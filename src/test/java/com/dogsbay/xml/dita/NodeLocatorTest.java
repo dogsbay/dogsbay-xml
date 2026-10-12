@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 /** Where {@link NodeLocator} looks for Node.js, and in which order. */
@@ -40,7 +42,18 @@ class NodeLocatorTest {
         return path;
     }
 
+    /**
+     * Why the Unix-shaped tests below do not run on Windows: they drive the locator with
+     * {@code windows=false}, which splits PATH on ':' — and a Windows absolute path has a ':' after
+     * its drive letter, so every PATH entry is torn in half. {@code setExecutable(false)} is also a
+     * no-op on NTFS, so "not executable" cannot be staged there. The Windows branch has its own
+     * test, {@link #usesWindowsNamesAndFolders()}.
+     */
+    private static final String WINDOWS_REASON =
+            "drives the Unix branch: PATH splits on ':' and the executable bit is a no-op on NTFS";
+
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = WINDOWS_REASON)
     void prefersThePreferenceThenTheEnvironmentVariableThenThePath() throws Exception {
         Path preferred = executable(dir.resolve("pref/node"));
         Path fromEnv = executable(dir.resolve("env/node"));
@@ -54,6 +67,7 @@ class NodeLocatorTest {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = WINDOWS_REASON)
     void skipsCandidatesThatAreMissingOrNotExecutable() throws Exception {
         Path notExecutable = dir.resolve("plain/node");
         Files.createDirectories(notExecutable.getParent());
@@ -103,6 +117,7 @@ class NodeLocatorTest {
     }
 
     @Test
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = WINDOWS_REASON)
     void addsNodeOnlyForDogsbayTranstypesThatDoNotSetIt() throws Exception {
         Path node = executable(dir.resolve("bin/node"));
         NodeLocator locator = new NodeLocator(Map.of("PATH", dir.resolve("bin").toString()), dir.resolve("home"), false, null);

@@ -151,7 +151,12 @@ class CheckOutputLinksCommandTest {
     void aRelativeFolderArgumentReportsRatherThanCrashing() throws Exception {
         page("index.html", "<a href=\"missing.html\">Gone</a>");
         // the documented way to run it is `check-output-links out/` — a path relative to where the process started
-        Path relative = Path.of("").toAbsolutePath().relativize(dir);
+        Path cwd = Path.of("").toAbsolutePath();
+        // On Windows the temp folder and the checkout can sit on different drives, and relativize
+        // across two roots throws rather than answering. There is nothing to relativize then.
+        org.junit.jupiter.api.Assumptions.assumeTrue(cwd.getRoot().equals(dir.getRoot()),
+                "temp folder and working directory are on different roots");
+        Path relative = cwd.relativize(dir);
         assertThat(relative.isAbsolute()).isFalse();
 
         assertThat(OutputLinkChecker.check(relative)).singleElement()
