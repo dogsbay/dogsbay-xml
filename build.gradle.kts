@@ -206,7 +206,7 @@ dependencies {
     implementation(files("lib/nekohtml.jar"))
 
     // FlatLaf Modern L&F
-    implementation("com.formdev:flatlaf:3.4")
+    implementation("com.formdev:flatlaf:3.7.2")
 
     // Apache Commons
     implementation("commons-logging:commons-logging:1.3.3")
