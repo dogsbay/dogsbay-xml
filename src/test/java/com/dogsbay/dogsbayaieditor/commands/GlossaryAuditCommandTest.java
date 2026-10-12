@@ -69,6 +69,42 @@ class GlossaryAuditCommandTest {
     }
 
     @Test
+    void anEntryInsideAGlossgroupIsAGlossaryTerm() throws Exception {
+        // Reported by CI against the tutorial's own glossary: gl-decibel and gl-hertz are entries
+        // inside topics/glossary/audio-units.dita, a <glossgroup>, and every reference to them was
+        // called undefined because the inventory was keyed by file and read only a root entry.
+        write("glossary/audio-units.dita", "<glossgroup id=\"units\"><title>Units</title>"
+                + "<glossentry id=\"gl-decibel\"><glossterm>decibel</glossterm></glossentry>"
+                + "<glossentry id=\"gl-hertz\"><glossterm>hertz</glossterm></glossentry>"
+                + "</glossgroup>");
+        write("map.ditamap", "<map><title>M</title>"
+                + "<keydef keys=\"gl-decibel\" href=\"glossary/audio-units.dita#gl-decibel\"/>"
+                + "<keydef keys=\"gl-hertz\" href=\"glossary/audio-units.dita#gl-hertz\"/>"
+                + "<keydef keys=\"units\" href=\"glossary/audio-units.dita\"/></map>");
+        write("topics/use.dita", "<concept id=\"c\"><title>T</title><conbody>"
+                + "<p><abbreviated-form keyref=\"gl-decibel\"/></p>"   // into the group → a term
+                + "<p><abbreviated-form keyref=\"units\"/></p>"        // the group itself → not
+                + "</conbody></concept>");
+
+        GlossaryAuditResult r = exec.execute(new GlossaryAuditCommand(
+                dir.toString(), "root", dir.resolve("map.ditamap").toString()));
+
+        // both entries are in the inventory, each with its own id and term
+        assertThat(r.entries()).extracting(GlossaryAuditResult.Entry::id,
+                GlossaryAuditResult.Entry::term)
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple("gl-decibel", "decibel"),
+                        org.assertj.core.groups.Tuple.tuple("gl-hertz", "hertz"));
+        // the reference into the group resolves; the one at the group does not, because a container
+        // is not a term — which is the one thing the old behaviour got right, for the wrong reason
+        assertThat(r.undefined()).extracting(GlossaryAuditResult.Ref::keyref)
+                .containsExactly("units");
+        // unused is per entry now, not per file: the group's other term is reported on its own
+        assertThat(r.unused()).extracting(GlossaryAuditResult.Entry::term)
+                .containsExactly("hertz");
+    }
+
+    @Test
     void withoutRootMapReturnsInventoryOnly() throws Exception {
         write("glossary/g-waveform.dita",
                 "<glossentry id=\"waveform\"><glossterm>waveform</glossterm></glossentry>");

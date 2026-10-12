@@ -80,6 +80,36 @@ class GlossaryPreviewTest {
 	}
 
 	@Test
+	void anEntryInsideAGroupSaysItsTermToo() throws Exception {
+		// The tutorial files its units in one <glossgroup>, each entry addressed by a fragment. Those
+		// mentions drew nothing at all, exactly as every mention did before this file existed, because
+		// the entry was looked for at the file's root element and a group was found there instead.
+		write("audio-units.dita", """
+				<glossgroup id="audio-units"><title>Units</title>
+				<glossentry id="gl-decibel"><glossterm>decibel</glossterm>
+				<glossdef>A logarithmic unit for the ratio between two levels.</glossdef>
+				<glossBody><glossSurfaceForm>decibel (dB)</glossSurfaceForm>
+				<glossAlt><glossAbbreviation>dB</glossAbbreviation></glossAlt></glossBody></glossentry>
+				<glossentry id="gl-hertz"><glossterm>hertz</glossterm>
+				<glossdef>Cycles per second.</glossdef></glossentry></glossgroup>
+				""");
+		File map = write("units.ditamap", """
+				<map><keydef keys="gl-decibel" href="audio-units.dita#gl-decibel"/>
+				<keydef keys="gl-hertz" href="audio-units.dita#gl-hertz"/></map>
+				""");
+
+		String html = preview(map, "<p>Peaks near -12 <abbreviated-form keyref=\"gl-decibel\"/>,"
+				+ " sampled in <abbreviated-form keyref=\"gl-hertz\"/>.</p>");
+
+		assertThat(html).contains("decibel (dB)").contains(">hertz<");
+		assertThat(html).as("resolved, not shown in the unresolved style").contains("keyref-resolved");
+		assertThat(html).doesNotContain(">gl-decibel<").doesNotContain(">gl-hertz<");
+		// Each entry's own definition, not the first one's for both.
+		assertThat(html).contains("title=\"A logarithmic unit for the ratio between two levels.\"")
+				.contains("title=\"Cycles per second.\"");
+	}
+
+	@Test
 	void theDefinitionIsTheHoverText() throws Exception {
 		String html = preview(glossaryMap(), "<p><abbreviated-form keyref=\"gl-clipping\"/></p>");
 

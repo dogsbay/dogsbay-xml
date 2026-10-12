@@ -36,9 +36,11 @@ class GlossaryScannerTest {
             </glossentry>
             """);
         assertThat(scan.isGlossentry()).isTrue();
-        assertThat(scan.entry().id()).isEqualTo("waveform");
-        assertThat(scan.entry().term()).isEqualTo("waveform");
-        assertThat(scan.entry().surfaceForms()).containsExactly("WF");
+        assertThat(scan.entries()).singleElement().satisfies(entry -> {
+            assertThat(entry.id()).isEqualTo("waveform");
+            assertThat(entry.term()).isEqualTo("waveform");
+            assertThat(entry.surfaceForms()).containsExactly("WF");
+        });
     }
 
     @Test
@@ -61,6 +63,71 @@ class GlossaryScannerTest {
     void plainTopicIsNotAGlossentry() {
         var scan = GlossaryScanner.scan("<concept id=\"c\"><title>T</title><conbody/></concept>");
         assertThat(scan.isGlossentry()).isFalse();
-        assertThat(scan.entry()).isNull();
+        assertThat(scan.entries()).isEmpty();
+    }
+
+    @Test
+    void readsEveryEntryOfAGlossgroup() {
+        // The shape the Audacity tutorial uses for units, and the shape that was invisible: four
+        // references into a group came back "not a glossary term" because only a root glossentry
+        // counted (CI, 2026-10-12).
+        var scan = GlossaryScanner.scan("""
+            <glossgroup id="audio-units">
+              <title>Units</title>
+              <prolog><author>The team</author></prolog>
+              <glossentry id="gl-decibel">
+                <glossterm><sort-as value="decibel"/>dB (decibel)</glossterm>
+                <glossdef>A logarithmic unit.</glossdef>
+                <glossBody>
+                  <glossSurfaceForm>decibel (dB)</glossSurfaceForm>
+                  <glossAlt><glossAbbreviation>dB</glossAbbreviation></glossAlt>
+                </glossBody>
+              </glossentry>
+              <glossentry id="gl-hertz">
+                <glossterm>hertz</glossterm>
+                <glossdef>Cycles per second.</glossdef>
+              </glossentry>
+            </glossgroup>
+            """);
+
+        assertThat(scan.isGlossentry()).isTrue();
+        assertThat(scan.entries()).extracting(GlossaryScanner.GlossEntry::id,
+                GlossaryScanner.GlossEntry::term)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("gl-decibel", "dB (decibel)"),
+                        org.assertj.core.groups.Tuple.tuple("gl-hertz", "hertz"));
+        // Each entry keeps its own forms: the group's first one has an abbreviation, the second none.
+        assertThat(scan.entries().get(0).surfaceForms()).containsExactly("dB");
+        assertThat(scan.entries().get(1).surfaceForms()).isEmpty();
+    }
+
+    @Test
+    void followsGroupsDownAsFarAsTheyNest() {
+        // glossgroup's content model allows glossgroup, so a glossary can be filed in sections.
+        var scan = GlossaryScanner.scan("""
+            <glossgroup id="outer"><title>All</title>
+              <glossgroup id="inner"><title>Units</title>
+                <glossentry id="gl-hertz"><glossterm>hertz</glossterm></glossentry>
+              </glossgroup>
+              <glossentry id="gl-clipping"><glossterm>clipping</glossterm></glossentry>
+            </glossgroup>
+            """);
+        assertThat(scan.entries()).extracting(GlossaryScanner.GlossEntry::id)
+                .containsExactly("gl-hertz", "gl-clipping");
+    }
+
+    @Test
+    void anEntryInAGroupKeepsTheRefsWrittenInsideIt() {
+        // A definition may mention another term, and that reference belongs to the file either way.
+        var scan = GlossaryScanner.scan("""
+            <glossgroup id="g"><title>All</title>
+              <glossentry id="gl-decibel"><glossterm>decibel</glossterm>
+                <glossdef>Measured against <abbreviated-form keyref="gl-hertz"/>.</glossdef>
+              </glossentry>
+            </glossgroup>
+            """);
+        assertThat(scan.entries()).hasSize(1);
+        assertThat(scan.refs()).extracting(GlossaryScanner.TermRef::keyref)
+                .containsExactly("gl-hertz");
     }
 }

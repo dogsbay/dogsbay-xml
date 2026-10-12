@@ -191,6 +191,55 @@ class GlossEntryTest {
 	}
 
 	@Test
+	void anHrefFragmentPicksOneEntryOutOfAGroup() throws Exception {
+		// What an <abbreviated-form keyref="gl-hertz"/> has to render from: the entry sits inside a
+		// <glossgroup> with its siblings, and reading the root element found a container with no
+		// term, so the mention rendered empty.
+		File group = write("""
+				<glossgroup id="audio-units"><title>Units</title>
+				  <glossentry id="gl-decibel">
+				    <glossterm>decibel</glossterm>
+				    <glossdef>A logarithmic unit.</glossdef>
+				    <glossBody>
+				      <glossSurfaceForm>decibel (dB)</glossSurfaceForm>
+				      <glossAlt><glossAbbreviation>dB</glossAbbreviation></glossAlt>
+				    </glossBody>
+				  </glossentry>
+				  <glossentry id="gl-hertz">
+				    <glossterm>hertz</glossterm>
+				    <glossdef>Cycles per second.</glossdef>
+				  </glossentry>
+				</glossgroup>
+				""");
+
+		GlossEntry decibel = GlossEntry.read(group, "glossary/audio-units.dita#gl-decibel");
+		assertThat(decibel.glossterm()).isEqualTo("decibel");
+		assertThat(decibel.firstMention()).isEqualTo("decibel (dB)");
+		assertThat(decibel.laterMention()).isEqualTo("dB");
+		assertThat(decibel.definition()).isEqualTo("A logarithmic unit.");
+
+		// The second entry's own forms, and none of its sibling's: the reader stops at its end tag.
+		GlossEntry hertz = GlossEntry.read(group, "#gl-hertz");
+		assertThat(hertz.glossterm()).isEqualTo("hertz");
+		assertThat(hertz.surfaceForm()).isNull();
+		assertThat(hertz.acronym()).isNull();
+
+		// A fragment naming nothing in the file, and the group itself: neither is a term.
+		assertThat(GlossEntry.read(group, "#gl-nothing")).isNull();
+		assertThat(GlossEntry.read(group, "glossary/audio-units.dita")).isNull();
+		assertThat(GlossEntry.read(group)).isNull();
+	}
+
+	@Test
+	void anEntryIsStillReadWhenTheHrefNamesItsFileAlone() throws Exception {
+		// The ordinary case, which must not regress: one entry per file, keydef without a fragment.
+		File entry = write("<glossentry id=\"gl-clipping\"><glossterm>Clipping</glossterm></glossentry>");
+		assertThat(GlossEntry.read(entry, "glossary/g-clipping.dita").glossterm()).isEqualTo("Clipping");
+		// And an element-level fragment, which addresses the topic part before the slash.
+		assertThat(GlossEntry.read(entry, "g.dita#gl-clipping/term").glossterm()).isEqualTo("Clipping");
+	}
+
+	@Test
 	void aDoctypeDoesNotSendItLookingForTheDtd() throws Exception {
 		// Every file in the tutorial's glossary carries one, and the DTD is not beside it.
 		GlossEntry entry = GlossEntry.read(write("""
