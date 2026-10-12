@@ -193,6 +193,10 @@ dependencies {
     // JAXB runtime — the XSLT schematron engine unmarshals SVRL via JAXB
     // (jakarta.xml.bind-api 4.x is already present; the impl was missing).
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.2")
+    // Held at 5.x on purpose: lib/dost.jar, the DITA-OT 4.3.5 engine, reads
+    // ResolverFeature.CACHE_DIRECTORY, and xmlresolver 6 removed it. We never name the field,
+    // so 6.x compiles and then aborts every publish with NoSuchFieldError. ResolverUpgradeTest
+    // guards it and says what to check before taking the major bump; dependabot.yml ignores it.
     implementation("org.xmlresolver:xmlresolver:5.3.3")
 
     // NekoHTML

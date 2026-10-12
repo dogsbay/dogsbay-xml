@@ -23,15 +23,13 @@ import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for xmlresolver 5.3.3 addition alongside xml-resolver 1.2.
- * Verifies both old and new resolver libraries can coexist.
- *
- * Phase 2 of DITA-OT 4.3 library upgrade plan.
+ * Tests that xmlresolver 5.x and the old xml-resolver 1.2 can coexist, and that the
+ * 5.x pin holds — see {@link #testXmlResolverVersion()} for why it is a pin.
  *
  * @version $Revision: 1.0 $, $Date: 2025/01/24 $
  * @author DogsBay Ltd
  */
-@DisplayName("XML Resolver 5.3.3 Addition Tests")
+@DisplayName("XML Resolver 5.x alongside xml-resolver 1.2")
 public class ResolverUpgradeTest {
 
     @Test
@@ -159,28 +157,61 @@ public class ResolverUpgradeTest {
         }, "Old resolver usage pattern should still work");
     }
 
+    /**
+     * xmlresolver stays on 5.x until DITA-OT's own engine moves off it.
+     *
+     * <p>{@code lib/dost.jar} — the DITA-OT 4.3.5 engine, a committed jar, not a Maven
+     * coordinate we control — reads {@code ResolverFeature.CACHE_DIRECTORY}, and xmlresolver 6
+     * dropped that field. Nothing fails at compile time, because we never name the field
+     * ourselves; the first publish aborts instead, with
+     * {@code FATAL DITA-OT build aborted: java.lang.NoSuchFieldError: Class
+     * org.xmlresolver.ResolverFeature does not have member field '…CACHE_DIRECTORY'}. On
+     * 6.1.0 that was every publish: 8 tests across three platforms, each reporting a
+     * missing output file rather than the cause.
+     *
+     * <p>So this is a deliberate pin and not a stale version string. Raising it means
+     * shipping a DITA-OT engine built against xmlresolver 6, so check {@code dost.jar}
+     * first — {@code unzip -p lib/dost.jar | strings | grep CACHE_DIRECTORY} finding
+     * nothing is the signal that the major bump is safe to take.
+     */
     @Test
-    @DisplayName("xmlresolver version check")
-    public void testXmlResolverVersion() {
-        // Try to verify we're using xmlresolver 5.3.3
-        // This is informational - helps confirm upgrade succeeded
+    @DisplayName("xmlresolver is held at 5.x, because DITA-OT's engine needs it")
+    public void testXmlResolverVersion() throws Exception {
+        Package pkg = Class.forName("org.xmlresolver.Resolver").getPackage();
+        String version = pkg == null ? null : pkg.getImplementationVersion();
+        assertNotNull(version,
+            "xmlresolver publishes its version in the jar manifest; without it this pin "
+            + "cannot be checked at all, so treat a null as the jar having changed shape");
+        assertTrue(version.startsWith("5."),
+            "xmlresolver is pinned to 5.x on purpose and this is " + version
+            + ". DITA-OT 4.3.5's lib/dost.jar reads ResolverFeature.CACHE_DIRECTORY, which "
+            + "xmlresolver 6 removed, so every publish aborts with NoSuchFieldError. See this "
+            + "test's javadoc for the one check that says when the bump is safe.");
+    }
+
+    /**
+     * The field DITA-OT needs is the thing actually asserted above, so assert it directly.
+     *
+     * <p>A version prefix is a proxy: it would pass a 5.x release that dropped the field and
+     * fail a 6.x that kept it. This reads the field the engine reads, by the same reflection
+     * the JVM would use, so it fails for the real reason.
+     */
+    @Test
+    @DisplayName("ResolverFeature still has the CACHE_DIRECTORY that DITA-OT's engine reads")
+    public void testCacheDirectoryFeatureIsStillThere() throws Exception {
+        Class<?> feature = Class.forName("org.xmlresolver.ResolverFeature");
+        // getField throws rather than returning null when the field is gone, and a bare
+        // NoSuchFieldException says nothing about why this test cares, so it is caught here
+        // and turned into the sentence a reader of the CI log needs.
         try {
-            Class<?> resolverClass = Class.forName("org.xmlresolver.Resolver");
-            Package pkg = resolverClass.getPackage();
-
-            if (pkg != null) {
-                String version = pkg.getImplementationVersion();
-                System.out.println("xmlresolver version: " +
-                    (version != null ? version : "unknown"));
-
-                if (version != null) {
-                    assertTrue(version.startsWith("5.") || version.contains("5.3"),
-                        "Should be using xmlresolver 5.x");
-                }
-            }
-        } catch (Exception e) {
-            // Version info may not be available, that's okay
-            System.out.println("Could not determine xmlresolver version: " + e.getMessage());
+            assertNotNull(feature.getField("CACHE_DIRECTORY").get(null),
+                "ResolverFeature.CACHE_DIRECTORY resolved to null");
+        } catch (NoSuchFieldException gone) {
+            fail("ResolverFeature.CACHE_DIRECTORY is missing from this xmlresolver. "
+                + "lib/dost.jar, the DITA-OT 4.3.5 engine, reads it, so every publish will "
+                + "abort with NoSuchFieldError — nothing fails at compile time because we "
+                + "never name the field ourselves. xmlresolver must stay on 5.x until the "
+                + "bundled DITA-OT engine is built against 6.");
         }
     }
 }

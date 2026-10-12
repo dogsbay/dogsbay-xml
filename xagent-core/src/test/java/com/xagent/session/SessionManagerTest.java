@@ -126,12 +126,7 @@ class SessionManagerTest {
 		String id1 = manager.createSession("/tmp", "openai", "gpt-5.4");
 		manager.appendMessage(id1, new UserMessage("First session"), null);
 
-		// Sessions are ordered by their creation Instant. Where the clock ticks coarsely
-		// (Windows), two sessions created back to back can share one, so wait for it to move.
-		java.time.Instant first = manager.listSessions().getFirst().timestamp();
-		while (!java.time.Instant.now().isAfter(first)) {
-			Thread.onSpinWait();
-		}
+		waitForTheClockToMovePast(manager.listSessions().getFirst().timestamp());
 		String id2 = manager.createSession("/tmp", "anthropic", "claude-sonnet-4-6-20250217");
 		manager.appendMessage(id2, new UserMessage("Second session"), null);
 
@@ -164,10 +159,32 @@ class SessionManagerTest {
 
 	@Test
 	void lastSessionIdReturnsNewest() throws IOException {
-		manager.createSession("/tmp", "openai", "gpt-5.4");
+		String id1 = manager.createSession("/tmp", "openai", "gpt-5.4");
+		waitForTheClockToMovePast(manager.getHeader(id1).timestamp());
 		String id2 = manager.createSession("/tmp", "anthropic", "claude-sonnet-4-6-20250217");
 
 		assertThat(manager.lastSessionId()).isEqualTo(id2);
+	}
+
+	/**
+	 * Block until {@code Instant.now()} is past {@code stamp}.
+	 *
+	 * <p>A session is ordered by the {@code Instant} its header records, and nothing breaks a
+	 * tie: a session id is eight characters of a random UUID, so two sessions stamped in the
+	 * same tick come back in whatever order the directory listing gave. On the Linux and macOS
+	 * runners two {@code createSession} calls have never shared a tick; on Windows they do,
+	 * and the newest-first assertion then comes down to the listing. Observed on the Windows
+	 * leg of two Dependabot runs (PRs #2 and #8) whose own changes had nothing to do with
+	 * sessions, while the same commit passed on the other two platforms.
+	 *
+	 * <p>So a test that cares which of two sessions is newer has to space them, and this is
+	 * the only honest way to: the ambiguity is real, and giving the production sort a
+	 * tiebreak would invent an order the data does not carry.
+	 */
+	private static void waitForTheClockToMovePast(Instant stamp) {
+		while (!Instant.now().isAfter(stamp)) {
+			Thread.onSpinWait();
+		}
 	}
 
 	@Test
