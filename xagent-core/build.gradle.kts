@@ -15,7 +15,8 @@ dependencies {
     api("dev.langchain4j:langchain4j-ollama:${property("langchain4jVersion")}")
     api("dev.langchain4j:langchain4j-google-ai-gemini:${property("langchain4jVersion")}")
     api("dev.langchain4j:langchain4j-mcp:${property("langchain4jVersion")}-beta22")
-    api("com.fasterxml.jackson.core:jackson-databind:${property("jacksonVersion")}")
+    api(platform("com.fasterxml.jackson:jackson-bom:${property("jacksonBomVersion")}"))
+    api("com.fasterxml.jackson.core:jackson-databind")
     api("org.slf4j:slf4j-api:${property("slf4jVersion")}")
 
     // XML validation: RelaxNG (Jing) and Schematron (with Saxon as its XPath engine)

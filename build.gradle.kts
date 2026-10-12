@@ -5,6 +5,9 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+import org.gradle.api.artifacts.component.ModuleComponentSelector
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
+
 plugins {
     java
     application
@@ -206,7 +209,7 @@ dependencies {
     implementation("com.formdev:flatlaf:3.4")
 
     // Apache Commons
-    implementation("commons-logging:commons-logging:1.2")
+    implementation("commons-logging:commons-logging:1.3.3")
     implementation("commons-net:commons-net:3.9.0")
     implementation("commons-io:commons-io:2.19.0")
 
@@ -221,11 +224,17 @@ dependencies {
     // ICU4J
     implementation("com.ibm.icu:icu4j:77.1")
 
-    // Jackson JSON/YAML
-    implementation("com.fasterxml.jackson.core:jackson-core:${property("jacksonVersion")}")
-    implementation("com.fasterxml.jackson.core:jackson-databind:${property("jacksonVersion")}")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:${property("jacksonVersion")}")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${property("jacksonVersion")}")
+    // Jackson JSON/YAML, versioned by its own BOM rather than one number per artifact.
+    // The family does not share a version: at the time of writing jackson-annotations
+    // publishes 2.21 where the rest publish 2.21.1, so "jacksonVersion" could not be set to
+    // the version that actually resolves without breaking the annotations line. The BOM is
+    // what langchain4j brings in and what therefore decided these versions anyway; naming it
+    // makes that visible and gives Dependabot one coordinate to bump for the whole family.
+    implementation(platform("com.fasterxml.jackson:jackson-bom:${property("jacksonBomVersion")}"))
+    implementation("com.fasterxml.jackson.core:jackson-core")
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.core:jackson-annotations")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
 
     // SLF4J + Logback
     implementation("org.slf4j:slf4j-api:${property("slf4jVersion")}")
@@ -233,7 +242,7 @@ dependencies {
     implementation("ch.qos.logback:logback-core:1.5.18")
 
     // SnakeYAML
-    implementation("org.yaml:snakeyaml:2.4")
+    implementation("org.yaml:snakeyaml:2.5")
 
     // Git Integration
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
@@ -451,8 +460,10 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 //   * jars with no Maven artifact (a patched dom4j, the old Swing widgets),
 //     which are genuinely source and stay committed.
 //
-// checkLib fails on both hazards: a resolvable jar that has been committed,
-// and two versions of the same artifact sitting in lib/ at once.
+// syncLib keeps the first kind current and removes the copies left by versions we have
+// moved off, so the stale-copy hazard is prevented rather than merely reported; checkLib
+// still fails on both hazards, since neither is only syncLib's to cause — a resolvable jar
+// that has been committed, and two versions of one artifact sitting in lib/ at once.
 // ── Third-party licence report ──────────────────────────────────────────────
 // Resolves every runtime dependency's POM and reads its <licenses>, writing
 // THIRD-PARTY.md. Covers the Maven half only: the jars under lib/ that have no
@@ -561,6 +572,94 @@ tasks.register("licenseReport") {
     }
 }
 
+// ── Declared versions must be the versions that resolve ─────────────────────
+// A version written in this build file is a floor, not a decision: when something else on
+// the graph asks for a higher one, Gradle takes the higher one and says nothing. So a
+// declaration can be years out of date while the build ships something current, and reading
+// the file tells you the wrong thing.
+//
+// Found 2026-10-12 with seven artifacts in that state, among them Saxon declared 12.7 while
+// 12.10 shipped (ph-schematron-api asks for it) and Jackson declared 2.19.0 while 2.21.1
+// shipped (langchain4j's BOM). Nothing was mis-built — compileClasspath and runtimeClasspath
+// agreed on the higher version — but two things followed from it. A reader, or an auditor
+// asking which Saxon we ship, got the wrong answer from the obvious place. And the floor was
+// the stale number, so had ph-schematron ever stopped asking, the build would have dropped
+// to 12.7 silently: a downgrade is not a resolution conflict and nothing would have reported
+// it.
+//
+// This compares what each project asks for directly against what it got. Transitive versions
+// are not its business — those are other people's declarations.
+tasks.register("checkDeclaredVersions") {
+    description = "Fail when a version declared here is overridden by the dependency graph"
+    // Every project, not just this one: xagent-core declares Jackson, Saxon and slf4j too,
+    // and three of the seven found were only visible there.
+    val configurationsToCheck = listOf("compileClasspath", "runtimeClasspath", "testRuntimeClasspath")
+    val results = allprojects.flatMap { p ->
+        configurationsToCheck.mapNotNull { name ->
+            p.configurations.findByName(name)?.takeIf { it.isCanBeResolved }
+                ?.let { "${p.name}:$name" to it.incoming.resolutionResult }
+        }
+    }
+    doLast {
+        // One line per artifact, not per project and configuration: the configurations
+        // overlap almost entirely, and six copies of one fact reads as six problems.
+        val overridden = sortedMapOf<String, String>()
+        results.forEach { (_, result) ->
+            result.root.dependencies
+                .filterIsInstance<ResolvedDependencyResult>()
+                .forEach { dep ->
+                    val asked = dep.requested as? ModuleComponentSelector ?: return@forEach
+                    val got = dep.selected.moduleVersion?.version
+                    if (asked.version.isNotEmpty() && got != null && asked.version != got) {
+                        overridden["${asked.group}:${asked.module}"] = "${asked.version} -> $got"
+                    }
+                }
+        }
+        if (overridden.isNotEmpty()) {
+            throw GradleException(
+                "These versions are declared in this build but are not the versions that " +
+                "resolve, so the declarations are not what ships:\n  " +
+                overridden.entries.joinToString("\n  ") { "${it.key}  declared ${it.value}" } +
+                "\n\nFix: declare the version that resolves, so the file says what ships and " +
+                "the floor cannot silently drop back. `./gradlew dependencyInsight " +
+                "--configuration runtimeClasspath --dependency <group>:<name>` says what " +
+                "decided it — usually something asking higher, since conflict resolution takes " +
+                "the highest, but a resolutionStrategy can pick either way. Where a family " +
+                "does not share one version number, depend on its BOM instead, as the Jackson " +
+                "declarations do.")
+        }
+    }
+}
+
+// Which jars in lib/ are source rather than build output.
+//
+// Only the repository can tell them apart: a tracked jar is source, because no Maven
+// artifact exists for it, and an untracked one is something syncLib copied in. Outside a
+// repository there is no answer, and this returns null so that callers needing one stand
+// down instead of guessing. That case is real — a source zip from GitHub, or `git archive`
+// output, carries no .git — and `git ls-files` exits 128 there, which used to fail checkLib,
+// and so `./gradlew build`, with "Process 'command 'git'' finished with non-zero exit value
+// 128" and nothing to say what was wanted.
+//
+// Standing down loses nothing in that case: an export arrives holding exactly the tracked
+// jars, so it cannot be carrying a stale one.
+fun trackedLibJars(): List<String>? =
+    try {
+        val git = providers.exec {
+            commandLine("git", "ls-files", "lib")
+            isIgnoreExitValue = true
+        }
+        if (git.result.get().exitValue != 0) {
+            null
+        } else {
+            git.standardOutput.asText.get().lines()
+                .filter { it.endsWith(".jar") }
+                .map { it.removePrefix("lib/") }
+        }
+    } catch (gitIsNotInstalled: Exception) {
+        null
+    }
+
 tasks.register("checkLib") {
     description = "Fail when lib/ holds a committed Maven jar or two versions of one artifact"
     val libDir = file("lib")
@@ -575,14 +674,16 @@ tasks.register("checkLib") {
 
         val problems = mutableListOf<String>()
 
-        val tracked = providers.exec {
-            commandLine("git", "ls-files", "lib")
-        }.standardOutput.asText.get().lines().filter { it.endsWith(".jar") }.map { it.removePrefix("lib/") }
-
-        val committedButResolvable = tracked.filter { it in fromMaven }.sorted()
-        if (committedButResolvable.isNotEmpty()) {
-            problems += "These lib/ jars are resolved from Maven and must not be committed " +
-                "(syncLib writes them):\n  " + committedButResolvable.joinToString("\n  ")
+        val tracked = trackedLibJars()
+        if (tracked == null) {
+            logger.lifecycle("checkLib: no git repository here, so the committed-jar check " +
+                "is skipped; the two-versions check below still runs.")
+        } else {
+            val committedButResolvable = tracked.filter { it in fromMaven }.sorted()
+            if (committedButResolvable.isNotEmpty()) {
+                problems += "These lib/ jars are resolved from Maven and must not be committed " +
+                    "(syncLib writes them):\n  " + committedButResolvable.joinToString("\n  ")
+            }
         }
 
         // "Saxon-HE-12.10.jar" -> artifact "saxon-he", version "12.10". A trailing
@@ -615,15 +716,52 @@ tasks.register("checkLib") {
 
 tasks.register<Copy>("syncLib") {
     description = "Copy Maven Central dependencies to lib/ for loader.properties"
-    from(configurations.runtimeClasspath.get().filter { !it.invariantSeparatorsPath.contains("/lib/") })
+    val fromMaven = configurations.runtimeClasspath.get()
+        .filter { !it.invariantSeparatorsPath.contains("/lib/") }
+    from(fromMaven)
     into("lib")
 
-    // loader.properties is the legacy Loader's own classpath list (run.sh). It was
-    // hand-maintained and drifted: after the last dependency sweep it named 17 jars
-    // that no longer exist and missed every one that had been added. Generate it
-    // from what is actually in lib/ so it cannot go stale again.
+    // Names, not paths: what lands in lib/ is the file name, and that is what a stale
+    // copy has to be compared against.
+    val wanted = fromMaven.map { it.name }.toSet()
+    val libDir = file("lib")
+
     doLast {
-        val jars = file("lib").listFiles { f -> f.name.endsWith(".jar") }
+        // Copying alone leaves the previous version behind, and then the dev launchers
+        // (run.sh, bin/dogsbay-xml, loader.properties) take whichever `lib/*` order gives
+        // them — the hazard described at the top of this section, which broke the Jing and
+        // Schematron upgrades. checkLib has caught it since the public-repo preparation, but
+        // catching it left the cleanup to be done by hand, once per bumped artifact.
+        //
+        // So remove what no longer belongs: a jar that the resolved classpath does not name
+        // and that git does not track is a copy syncLib made for a version we have moved off.
+        // Both halves are needed — "not on the classpath" alone would delete the source jars,
+        // which is why the task could not prune when lib/ was 199 committed files and the two
+        // kinds were indistinguishable.
+        val tracked = trackedLibJars()
+        if (tracked == null) {
+            logger.lifecycle("syncLib: no git repository here, so nothing is pruned from " +
+                "lib/ — source and copied jars cannot be told apart without one.")
+        } else {
+            val keep = wanted + tracked
+            val stale = libDir.listFiles { f -> f.name.endsWith(".jar") }
+                ?.filter { it.name !in keep }?.sortedBy { it.name } ?: emptyList()
+            stale.forEach { jar ->
+                if (jar.delete()) {
+                    logger.lifecycle("syncLib: removed stale lib/${jar.name}")
+                } else {
+                    logger.warn("syncLib: could not remove stale lib/${jar.name} — delete it " +
+                        "by hand, or the launchers may load it instead of the current version.")
+                }
+            }
+        }
+
+        // loader.properties is the legacy Loader's own classpath list (run.sh). It was
+        // hand-maintained and drifted: after the last dependency sweep it named 17 jars
+        // that no longer exist and missed every one that had been added. Generate it from
+        // what is actually in lib/ — after the pruning above, so a removed jar leaves the
+        // list too — so it cannot go stale again.
+        val jars = libDir.listFiles { f -> f.name.endsWith(".jar") }
             ?.map { "lib/${it.name}" }?.sorted() ?: emptyList()
         val entries = (listOf("dogsbay-editor.jar") + jars).joinToString(";")
         file("loader.properties").writeText(
@@ -637,7 +775,7 @@ tasks.register<Copy>("syncLib") {
 }
 // compileJava reads jars from lib/ (the fileTree dependencies above), so when
 // both run in one invocation the copy goes first. Gradle 9 refuses to guess.
-tasks.named("check") { dependsOn("checkLib") }
+tasks.named("check") { dependsOn("checkLib", "checkDeclaredVersions") }
 tasks.named("compileJava") { mustRunAfter("syncLib") }
 tasks.named("compileTestJava") { mustRunAfter("syncLib") }
 
