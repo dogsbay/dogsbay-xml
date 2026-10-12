@@ -193,7 +193,7 @@ dependencies {
     // JAXB runtime — the XSLT schematron engine unmarshals SVRL via JAXB
     // (jakarta.xml.bind-api 4.x is already present; the impl was missing).
     implementation("org.glassfish.jaxb:jaxb-runtime:4.0.2")
-    implementation("org.xmlresolver:xmlresolver:5.3.3")
+    implementation("org.xmlresolver:xmlresolver:6.1.0")
 
     // NekoHTML
     implementation(files("lib/nekohtml.jar"))
