@@ -66,8 +66,11 @@ class KeyBindingsPanelTest {
         SwingUtilities.invokeAndWait(() -> panel.filterField().setText("file"));
         assertThat(panel.rows()).hasSize(2);
 
-        // Searching by the key is how you find what has taken Ctrl+S.
-        SwingUtilities.invokeAndWait(() -> panel.filterField().setText("ctrl+s"));
+        // Searching by the key is how you find what has taken Ctrl+S. The filter matches the text the
+        // row shows, and that text is the platform's: KeyEvent.getModifiersExText renders control as
+        // "Ctrl" on Linux and Windows and as the "\u2303" symbol on macOS, so a hardcoded "ctrl+s"
+        // found nothing there. Ask for the same rendering the panel uses.
+        SwingUtilities.invokeAndWait(() -> panel.filterField().setText(KeyStrokeCapture.describe(CTRL_S)));
         assertThat(panel.rows()).extracting(KeyBinding::id).containsExactly("File:  Save");
     }
 

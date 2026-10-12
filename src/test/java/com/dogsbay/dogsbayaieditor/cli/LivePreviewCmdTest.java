@@ -87,6 +87,8 @@ class LivePreviewCmdTest {
     @Test
     void stopSaysWhenNothingRunsAndReportsWhatItCouldNotStop() {
         assertThat(run("live-preview", "stop", root.toString()).out()).contains("No live preview is running");
+        org.junit.jupiter.api.Assumptions.assumeTrue(other.info().commandLine().isPresent(),
+                "this OS does not expose another process's command line");
         register("cli"); // a process whose command line is not a preview's: asked, never ended
         System.setProperty("dogsbay.previews.stopWait", "1000");
         Run r = run("live-preview", "stop", "--all", root.toString());

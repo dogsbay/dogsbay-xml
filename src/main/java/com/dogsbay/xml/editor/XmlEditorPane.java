@@ -75,7 +75,7 @@ public class XmlEditorPane extends JEditorPane {
 		registerEditorKits(null);
 
 		setEditable(true);
-		setDragEnabled(true);
+		enableDragUnlessHeadless();
 		rebindBackspace();
 	}
 
@@ -90,8 +90,24 @@ public class XmlEditorPane extends JEditorPane {
 		registerEditorKits(errors);
 
 		setEditable(true);
-		setDragEnabled(true);
+		enableDragUnlessHeadless();
 		rebindBackspace();
+	}
+
+	/**
+	 * Drag-and-drop out of the pane, where there is a pointer to drag with.
+	 *
+	 * <p>{@code JTextComponent.setDragEnabled(true)} calls {@code checkDragEnabled}, which throws
+	 * {@link java.awt.HeadlessException} when there is no display — so constructing a pane at all
+	 * failed in a headless JVM, and with it 24 tests that only ever wanted the pane's geometry and
+	 * said so in their own javadoc. Dragging cannot happen without a pointer, so withholding it
+	 * headless costs nothing. The regression guard is CI: the Linux leg of Build & Test runs the
+	 * suite headless.
+	 */
+	private void enableDragUnlessHeadless() {
+		if (!java.awt.GraphicsEnvironment.isHeadless()) {
+			setDragEnabled(true);
+		}
 	}
 
 	/**
