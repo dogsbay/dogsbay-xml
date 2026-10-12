@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+<map>
+  <title>Gap tests</title>
+  <topicref href="tables.dita"/>
+  <topicref href="anchors.dita"/>
+  <topicref href="highlighting.dita"/>
+  <topicref href="xrefs.dita"/>
+  <topicref href="images.dita"/>
+  <topicref href="properties.dita"/>
+  <topicref href="footnotes.dita"/>
+  <topicref href="repeated-ids.dita"/>
+</map>

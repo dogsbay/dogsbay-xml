@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<type name="DITA 1.3 Reference" icon="" publicID="-//OASIS//DTD DITA Reference//EN" systemID="reference.dtd" extensions="dita xml">
+	<root name="reference">
+		<namespace prefix="" uri=""/>
+	</root>
+
+	<!-- Inline -->
+	<fragment block="false" name="codeph" key="Alt+Shift+K" order="0" icon="">&lt;codeph&gt;${cursor}${selection}&lt;/codeph&gt;</fragment>
+	<fragment block="false" name="parmname" key="Alt+Shift+M" order="1" icon="">&lt;parmname&gt;${cursor}${selection}&lt;/parmname&gt;</fragment>
+	<fragment block="false" name="apiname" key="Alt+Shift+A" order="2" icon="">&lt;apiname&gt;${cursor}${selection}&lt;/apiname&gt;</fragment>
+	<fragment block="false" name="option" key="Alt+Shift+O" order="3" icon="">&lt;option&gt;${cursor}${selection}&lt;/option&gt;</fragment>
+	<fragment block="false" name="xref" key="Alt+Shift+X" order="4" icon="">&lt;xref href="${cursor}" format="dita"/&gt;</fragment>
+
+	<!-- Blocks -->
+	<fragment block="true" name="section" key="Alt+Shift+S" order="5" icon="">&lt;section&gt;
+	&lt;title&gt;${cursor}&lt;/title&gt;
+	&lt;p&gt;&lt;/p&gt;
+&lt;/section&gt;</fragment>
+	<fragment block="true" name="paragraph" key="Alt+Shift+P" order="6" icon="">&lt;p&gt;${cursor}&lt;/p&gt;</fragment>
+	<fragment block="true" name="codeblock" key="Alt+Shift+C" order="7" icon="">&lt;codeblock outputclass="language-xml"&gt;${cursor}&lt;/codeblock&gt;</fragment>
+
+	<!-- Properties table (reference-specific) -->
+	<fragment block="true" name="properties table" key="Alt+Shift+R" order="8" icon="">&lt;properties&gt;
+	&lt;prophead&gt;
+		&lt;proptypehd&gt;Type&lt;/proptypehd&gt;
+		&lt;propvaluehd&gt;Value&lt;/propvaluehd&gt;
+		&lt;propdeschd&gt;Description&lt;/propdeschd&gt;
+	&lt;/prophead&gt;
+	&lt;property&gt;
+		&lt;proptype&gt;${cursor}&lt;/proptype&gt;
+		&lt;propvalue&gt;&lt;/propvalue&gt;
+		&lt;propdesc&gt;&lt;/propdesc&gt;
+	&lt;/property&gt;
+&lt;/properties&gt;</fragment>
+
+	<!-- Parameters table (2-column) -->
+	<fragment block="true" name="parameter table" key="Alt+Shift+T" order="9" icon="">&lt;table&gt;
+	&lt;title&gt;Parameters&lt;/title&gt;
+	&lt;tgroup cols="3"&gt;
+		&lt;colspec colname="c1" colwidth="1.5*"/&gt;
+		&lt;colspec colname="c2" colwidth="1.0*"/&gt;
+		&lt;colspec colname="c3" colwidth="2.0*"/&gt;
+		&lt;thead&gt;
+			&lt;row&gt;
+				&lt;entry&gt;Parameter&lt;/entry&gt;
+				&lt;entry&gt;Type&lt;/entry&gt;
+				&lt;entry&gt;Description&lt;/entry&gt;
+			&lt;/row&gt;
+		&lt;/thead&gt;
+		&lt;tbody&gt;
+			&lt;row&gt;
+				&lt;entry&gt;&lt;codeph&gt;${cursor}&lt;/codeph&gt;&lt;/entry&gt;
+				&lt;entry&gt;&lt;/entry&gt;
+				&lt;entry&gt;&lt;/entry&gt;
+			&lt;/row&gt;
+		&lt;/tbody&gt;
+	&lt;/tgroup&gt;
+&lt;/table&gt;</fragment>
+
+	<fragment block="true" name="ul" key="Alt+Shift+U" order="10" icon="">&lt;ul&gt;
+	&lt;li&gt;${cursor}&lt;/li&gt;
+	&lt;li&gt;&lt;/li&gt;
+&lt;/ul&gt;</fragment>
+	<fragment block="true" name="note" key="Alt+Shift+N" order="11" icon="">&lt;note&gt;${cursor}&lt;/note&gt;</fragment>
+
+	<xpath name="Sections" xpath="//section/title | //example/title | //refbody" default="false" showElementNames="true" showElementContent="true" showAttributes="false" showAttributeNames="false"/>
+	<xpath name="Titles" xpath="//title" default="true" showElementNames="false" showElementContent="true" showAttributes="false" showAttributeNames="false"/>
+
+	<validation src="" type="dtd" useDocumentLocation="true"/>
+</type>

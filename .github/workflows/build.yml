@@ -1,0 +1,68 @@
+name: Build & Test
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:   # enables the "Run workflow" button + `gh workflow run`
+
+# Cancel superseded runs on the same ref (e.g. rapid pushes to a PR).
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Windows too: paths Windows rejects (a "<" in a Path.of) crashed the
+    # packaged editor there while every Linux run passed. macOS for the same
+    # reason, and because it costs nothing — standard GitHub-hosted runners are
+    # free and unlimited on a public repository. It was left out while one test
+    # failed there: @TempDir is under /var/folders, a symlink to /private/var,
+    # and DitaMapParserTest compared a resolved real path against the symlinked
+    # one. Reproduced on Linux by pointing java.io.tmpdir at a symlink, then
+    # fixed, which is why this leg can be trusted to mean something.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Checked out into ./editor, matching the e2e workflow, which also
+      # checks out the private demo corpus beside it.
+      - name: Checkout editor
+        uses: actions/checkout@v7
+        with:
+          path: editor
+
+      - name: Set up JDK 25
+        # Match the Gradle toolchain (JavaLanguageVersion.of(25)) so the runtime
+        # JDK and the toolchain agree and foojay doesn't download a second JDK.
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      # Deliberately v5, not v6. In v6 Gradle extracted the caching logic into a
+      # separate `gradle-actions-caching` component that is NOT open source —
+      # using it means accepting https://gradle.com/legal/terms-of-use/. Since we
+      # enable caching here, v6 would pull that component in. v5 is the last fully
+      # MIT-licensed line and already runs on Node 24. Revisit only as a conscious
+      # licensing decision.
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Build and test
+        working-directory: editor
+        run: ./gradlew build
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.os }}
+          path: editor/build/reports/tests/
+          retention-days: 14

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd">
+<reference id="effects-reference">
+  <title>Effects Reference</title>
+  <refbody>
+    <section>
+      <p>Audacity includes several built-in audio effects. Apply effects by
+      selecting a region of audio and choosing an effect from the
+      <uicontrol>Effect</uicontrol> menu.</p>
+    </section>
+    <table>
+      <title>Built-in Audio Effects</title>
+      <tgroup cols="3">
+        <colspec colname="effect" colwidth="1*"/>
+        <colspec colname="description" colwidth="2*"/>
+        <colspec colname="parameters" colwidth="2*"/>
+        <thead>
+          <row>
+            <entry>Effect</entry>
+            <entry>Description</entry>
+            <entry>Key Parameters</entry>
+          </row>
+        </thead>
+        <tbody>
+          <row>
+            <entry>Amplify</entry>
+            <entry>Increases or decreases the volume of the selected
+            audio.</entry>
+            <entry>Amplification (dB): positive values increase volume,
+            negative values decrease it. "Allow clipping" checkbox.</entry>
+          </row>
+          <row>
+            <entry>Noise Reduction</entry>
+            <entry>Removes consistent background noise such as hum, hiss,
+            or fan noise. Requires a noise profile sample.</entry>
+            <entry>Noise reduction (dB): 6-12 dB for mild noise, 12-24 dB
+            for heavy noise. Sensitivity and frequency smoothing controls.</entry>
+          </row>
+          <row>
+            <entry>Compressor</entry>
+            <entry>Reduces the dynamic range of audio, making quiet parts
+            louder and loud parts quieter.</entry>
+            <entry>Threshold (dB), Ratio (e.g., 3:1), Attack time (secs),
+            Release time (secs).</entry>
+          </row>
+          <row>
+            <entry>Equalization</entry>
+            <entry>Adjusts the balance of frequency components in the
+            audio. Use to boost or cut bass, midrange, or treble.</entry>
+            <entry>Frequency curve with adjustable points, or preset curves
+            (e.g., Bass Boost, Treble Boost).</entry>
+          </row>
+          <row>
+            <entry>Normalize</entry>
+            <entry>Adjusts the peak amplitude to a target level and
+            optionally removes DC offset.</entry>
+            <entry>Normalize peak amplitude to (dB): typically -1.0 dB.
+            "Remove DC offset" checkbox.</entry>
+          </row>
+          <row>
+            <entry>Fade In / Fade Out</entry>
+            <entry>Gradually increases (fade in) or decreases (fade out)
+            the volume of the selected audio.</entry>
+            <entry>No parameters — applies a linear fade to the
+            selection.</entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </table>
+  </refbody>
+</reference>

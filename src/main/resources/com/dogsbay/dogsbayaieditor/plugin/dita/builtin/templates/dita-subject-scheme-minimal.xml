@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE subjectScheme PUBLIC "-//OASIS//DTD DITA Subject Scheme Map//EN" "subjectScheme.dtd">
+
+<subjectScheme>
+  <title>Controlled Values</title>
+  <subjectdef keys="audience-values">
+    <subjectdef keys="internal"/>
+    <subjectdef keys="customer"/>
+  </subjectdef>
+  <enumerationdef>
+    <attributedef name="audience"/>
+    <subjectdef keyref="audience-values"/>
+  </enumerationdef>
+</subjectScheme>

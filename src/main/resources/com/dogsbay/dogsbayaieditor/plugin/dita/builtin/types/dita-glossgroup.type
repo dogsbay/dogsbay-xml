@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<type name="DITA 1.3 Glossary Group" icon="" publicID="-//OASIS//DTD DITA Glossary Group//EN" systemID="glossgroup.dtd" extensions="dita xml">
+	<root name="glossgroup">
+		<namespace prefix="" uri=""/>
+	</root>
+
+	<!-- Entries: a glossgroup is a file of them -->
+	<fragment block="true" name="glossentry" key="Alt+Shift+G" order="0" icon="">&lt;glossentry id="${cursor}"&gt;
+	&lt;glossterm&gt;&lt;/glossterm&gt;
+	&lt;glossdef&gt;&lt;/glossdef&gt;
+&lt;/glossentry&gt;</fragment>
+	<fragment block="true" name="glossentry (with abbreviation)" key="Alt+Shift+A" order="1" icon="">&lt;glossentry id="${cursor}"&gt;
+	&lt;glossterm&gt;&lt;/glossterm&gt;
+	&lt;glossdef&gt;&lt;/glossdef&gt;
+	&lt;glossBody&gt;
+		&lt;glossAlt&gt;
+			&lt;glossAbbreviation&gt;&lt;/glossAbbreviation&gt;
+		&lt;/glossAlt&gt;
+	&lt;/glossBody&gt;
+&lt;/glossentry&gt;</fragment>
+	<fragment block="true" name="glossterm" key="Alt+Shift+T" order="2" icon="">&lt;glossterm&gt;${cursor}&lt;/glossterm&gt;</fragment>
+	<fragment block="true" name="glossdef" key="Alt+Shift+D" order="3" icon="">&lt;glossdef&gt;${cursor}&lt;/glossdef&gt;</fragment>
+
+	<!-- Inline -->
+	<fragment block="false" name="term" key="Alt+Shift+M" order="4" icon="">&lt;term&gt;${cursor}${selection}&lt;/term&gt;</fragment>
+	<fragment block="false" name="xref" key="Alt+Shift+X" order="5" icon="">&lt;xref href="${cursor}" format="dita"/&gt;</fragment>
+	<fragment block="true" name="paragraph" key="Alt+Shift+P" order="6" icon="">&lt;p&gt;${cursor}&lt;/p&gt;</fragment>
+
+	<xpath name="Terms" xpath="//glossterm" default="true" showElementNames="false" showElementContent="true" showAttributes="false" showAttributeNames="false"/>
+	<xpath name="Entries" xpath="//glossentry" default="false" showElementNames="true" showElementContent="false" showAttributes="true" showAttributeNames="true"/>
+
+	<validation src="" type="dtd" useDocumentLocation="true"/>
+</type>

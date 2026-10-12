@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Gradle-declared dependencies (Maven coordinates in build.gradle.kts).
+  # NOTE: the vendored jars under lib/ are NOT tracked by Dependabot — they are
+  # flat-file dependencies. Keep those updated manually (see
+  # the vendored-dependency inventory).
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # GitHub Actions used by the CI workflows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

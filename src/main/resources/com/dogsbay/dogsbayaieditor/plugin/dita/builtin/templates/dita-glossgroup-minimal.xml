@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE glossgroup PUBLIC "-//OASIS//DTD DITA Glossary Group//EN" "glossgroup.dtd">
+
+<glossgroup id="glossgroup_id">
+  <title>Glossary</title>
+  <glossentry id="term">
+    <glossterm>Term</glossterm>
+    <glossdef></glossdef>
+  </glossentry>
+</glossgroup>

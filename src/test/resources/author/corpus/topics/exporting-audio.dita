@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="exporting-audio">
+  <title>Exporting Audio</title>
+  <taskbody>
+    <context>
+      <p>After editing your audio, you need to export it to a standard audio
+      format for sharing or playback. Audacity project files (.aup3) can only
+      be opened by Audacity, so you must export to formats like MP3 or WAV.</p>
+    </context>
+    <steps>
+      <step>
+        <cmd>Choose
+          <menucascade>
+            <uicontrol>File</uicontrol>
+            <uicontrol>Export</uicontrol>
+            <uicontrol>Export as MP3</uicontrol>
+          </menucascade>.
+        </cmd>
+      </step>
+      <step>
+        <cmd>In the export dialog, choose a location and filename for your
+        file.</cmd>
+      </step>
+      <step>
+        <cmd>Set the <uicontrol>Bit Rate Mode</uicontrol> to
+        <uicontrol>Constant</uicontrol> and the <uicontrol>Quality</uicontrol>
+        to <uicontrol>192 kbps</uicontrol> for a good balance of quality and
+        file size.</cmd>
+        <info>
+          <note type="tip"><p>For podcasts, 128 kbps mono is usually sufficient
+          and produces smaller files. For music, use 256 kbps or higher.</p></note>
+        </info>
+      </step>
+      <step>
+        <cmd>Click <uicontrol>Save</uicontrol>.</cmd>
+      </step>
+      <step>
+        <cmd>Fill in the metadata tags (Title, Artist, Album) if desired, then
+        click <uicontrol>OK</uicontrol>.</cmd>
+      </step>
+    </steps>
+    <result>
+      <p>Your audio is now saved as an MP3 file that can be played on any
+      device or uploaded to the web.</p>
+      <note type="tip"><p>To export as WAV instead (for lossless quality),
+      choose
+        <menucascade>
+          <uicontrol>File</uicontrol>
+          <uicontrol>Export</uicontrol>
+          <uicontrol>Export as WAV</uicontrol>
+        </menucascade>.</p></note>
+    </result>
+  </taskbody>
+</task>

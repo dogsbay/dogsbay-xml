@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE glossentry PUBLIC "-//OASIS//DTD DITA Glossary Entry//EN" "glossentry.dtd">
+<glossentry id="gl-compression">
+  <glossterm>Dynamic Range Compression</glossterm>
+  <glossdef>An audio process that reduces the difference between the loudest
+  and quietest parts of a recording. Compression makes quiet passages louder
+  and prevents loud passages from peaking. It is widely used in podcasting
+  and broadcast audio.</glossdef>
+</glossentry>

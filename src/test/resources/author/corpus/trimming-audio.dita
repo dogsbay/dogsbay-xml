@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="trimming-audio">
+  <title>Trimming Audio</title>
+  <taskbody>
+    <context>
+      <p>Trimming removes unwanted audio from the beginning, end, or middle
+      of your recording. This is useful for cutting out silence, false starts,
+      or mistakes.</p><x></x>
+      <note conref="../shared/common-notes.dita#common-notes/backup-warning"
+            type="warning"><p/></note>
+    </context>
+    <steps>
+      <step conref="../shared/common-steps.dita#common-steps/select-region">
+        <cmd/>
+      </step>
+      <step>
+        <cmd>Press the <uicontrol>Delete</uicontrol> key to remove the
+        selected audio.</cmd>
+        <info><p>The audio after the deleted region shifts left to close the
+        gap. If you want to replace the selection with silence instead (keeping
+        the timing), use
+          <menucascade>
+            <uicontrol>Edit</uicontrol>
+            <uicontrol>Remove Special</uicontrol>
+            <uicontrol>Silence Audio</uicontrol>
+          </menucascade>.</p></info>
+      </step>
+      <step>
+        <cmd>Listen to the result by pressing <uicontrol>Space</uicontrol>
+        to play.</cmd>
+      </step>
+      <step conref="../shared/common-steps.dita#common-steps/save-project">
+        <cmd/>
+      </step>
+    </steps>
+    <result>
+      <p>The <b>unwanted</b> audio has been removed from your track.</p>
+    </result>
+  </taskbody>
+</task>

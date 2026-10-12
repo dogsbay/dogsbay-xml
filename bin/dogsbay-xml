@@ -1,0 +1,20 @@
+#!/bin/bash
+# dogsbay-xml — DogsBay XML editor CLI
+#
+# Usage: dogsbay-xml <command> [args...]
+# Run 'dogsbay-xml --help' for available commands.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Keep in sync with applicationDefaultJvmArgs in build.gradle.kts.
+JVM_FLAGS=(
+    --add-opens java.base/java.lang=ALL-UNNAMED   # JRuby
+    --add-opens java.base/java.io=ALL-UNNAMED     # JRuby
+    --add-opens java.base/java.nio=ALL-UNNAMED    # JNA
+    --add-opens java.base/sun.nio.ch=ALL-UNNAMED  # JNA
+    --enable-native-access=ALL-UNNAMED            # JNA/pty4j (JDK 24+ warns without it)
+)
+
+exec java "${JVM_FLAGS[@]}" \
+  -cp "$SCRIPT_DIR/build/classes/java/main:$SCRIPT_DIR/build/resources/main:$SCRIPT_DIR/lib/*" \
+  com.dogsbay.dogsbayaieditor.cli.DogsBayCli "$@"

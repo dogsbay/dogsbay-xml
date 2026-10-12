@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd">
+<reference id="keyboard-shortcuts">
+  <title>Keyboard Shortcuts</title>
+  <refbody>
+    <section>
+      <p>Audacity provides keyboard shortcuts for common actions. Learning
+      these shortcuts will speed up your editing workflow.</p>
+    </section>
+    <simpletable>
+      <sthead>
+        <stentry>Action</stentry>
+        <stentry>Windows / Linux</stentry>
+        <stentry>macOS</stentry>
+      </sthead>
+      <strow>
+        <stentry>Play / Stop</stentry>
+        <stentry>Space</stentry>
+        <stentry>Space</stentry>
+      </strow>
+      <strow>
+        <stentry>Record</stentry>
+        <stentry>R</stentry>
+        <stentry>R</stentry>
+      </strow>
+      <strow>
+        <stentry>Pause</stentry>
+        <stentry>P</stentry>
+        <stentry>P</stentry>
+      </strow>
+      <strow>
+        <stentry>Undo</stentry>
+        <stentry>Ctrl+Z</stentry>
+        <stentry>Cmd+Z</stentry>
+      </strow>
+      <strow>
+        <stentry>Redo</stentry>
+        <stentry>Ctrl+Y</stentry>
+        <stentry>Cmd+Shift+Z</stentry>
+      </strow>
+      <strow>
+        <stentry>Cut</stentry>
+        <stentry>Ctrl+X</stentry>
+        <stentry>Cmd+X</stentry>
+      </strow>
+      <strow>
+        <stentry>Copy</stentry>
+        <stentry>Ctrl+C</stentry>
+        <stentry>Cmd+C</stentry>
+      </strow>
+      <strow>
+        <stentry>Paste</stentry>
+        <stentry>Ctrl+V</stentry>
+        <stentry>Cmd+V</stentry>
+      </strow>
+      <strow>
+        <stentry>Select All</stentry>
+        <stentry>Ctrl+A</stentry>
+        <stentry>Cmd+A</stentry>
+      </strow>
+      <strow>
+        <stentry>Zoom In</stentry>
+        <stentry>Ctrl+1</stentry>
+        <stentry>Cmd+1</stentry>
+      </strow>
+      <strow>
+        <stentry>Zoom Out</stentry>
+        <stentry>Ctrl+3</stentry>
+        <stentry>Cmd+3</stentry>
+      </strow>
+      <strow>
+        <stentry>Fit in Window</stentry>
+        <stentry>Ctrl+F</stentry>
+        <stentry>Cmd+F</stentry>
+      </strow>
+    </simpletable>
+  </refbody>
+</reference>

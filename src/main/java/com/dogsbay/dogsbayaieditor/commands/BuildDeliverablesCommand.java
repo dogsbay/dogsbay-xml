@@ -1,0 +1,91 @@
+/*
+ * Copyright (C) 2002-2026 DogsBay Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.dogsbay.dogsbayaieditor.commands;
+
+import java.util.List;
+
+import com.dogsbay.dogsbayaieditor.commands.results.DeliverableBuild;
+
+/**
+ * Build a DITA project's deliverables with DITA-OT — each with its own transtype,
+ * DITAVAL filter(s), publication params, and output directory. Builds one named
+ * deliverable or all of them, reporting per-deliverable success + diagnostics
+ * (the natural companion to {@link ValidateDeepCommand}).
+ *
+ * <p>Output goes to {@code <outputBaseDir>/<name>} when {@code outputBaseDir} is
+ * given; else the deliverable's declared {@code <output>} (resolved against its
+ * project file); else {@code <root>/out/<name>}.
+ *
+ * <p>Requires DITA-OT (the DITA Framework asset) — resolved from {@code ditaOtHome}
+ * when given, else the project-configured engine path; absent → INVALID_ARGUMENT.
+ *
+ * @param root          the project root (workspace folder)
+ * @param outputBaseDir    base output directory (each deliverable under a subdir), or null
+ * @param deliverable      a single deliverable name, or null/blank for all deliverables
+ * @param ditaOtHome       DITA-OT home override (the editor injects its path), or null
+ * @param deliverableNames an explicit set of deliverable names to build — every project
+ *                         deliverable whose name is in the set (so same-named ones all
+ *                         build); takes precedence over {@code deliverable}. Null/empty ⇒
+ *                         fall back to {@code deliverable} (single or all).
+ * @param keepTemp         keep DITA-OT's temporary files in
+ *                         {@code <root>/.dogsbay/temp/<deliverable>}: true or false
+ *                         overrides every deliverable's {@code clean.temp} param; null
+ *                         follows each deliverable's own {@code clean.temp}
+ * @param transtype        build every deliverable with this output type instead of its own
+ *                         (the live preview builds a {@code dogsbay-site} deliverable as
+ *                         {@code dogsbay}), or null for each deliverable's own
+ * @param changedPaths     write the files each publish changed as JSON to this path, for a
+ *                         caller that keeps a site builder running (the live preview POSTs
+ *                         them to its dev session), or null for an ordinary build. The
+ *                         converter writes it last, so a publish that failed leaves none
+ */
+public record BuildDeliverablesCommand(
+    String root,
+    String outputBaseDir,
+    String deliverable,
+    String ditaOtHome,
+    List<String> deliverableNames,
+    Boolean keepTemp,
+    String transtype,
+    String changedPaths
+) implements Command<List<DeliverableBuild>> {
+
+    /** A build that reports no changed files, which is every build but a live preview's. */
+    public BuildDeliverablesCommand(String root, String outputBaseDir, String deliverable, String ditaOtHome,
+            List<String> deliverableNames, Boolean keepTemp, String transtype) {
+        this(root, outputBaseDir, deliverable, ditaOtHome, deliverableNames, keepTemp, transtype, null);
+    }
+
+    /** Deliverables built with their own transtypes. */
+    public BuildDeliverablesCommand(String root, String outputBaseDir, String deliverable, String ditaOtHome,
+            List<String> deliverableNames, Boolean keepTemp) {
+        this(root, outputBaseDir, deliverable, ditaOtHome, deliverableNames, keepTemp, null);
+    }
+
+    /** One named deliverable (or all when {@code deliverable} is null). */
+    public BuildDeliverablesCommand(String root, String outputBaseDir, String deliverable, String ditaOtHome) {
+        this(root, outputBaseDir, deliverable, ditaOtHome, null, null);
+    }
+
+    /** The named deliverables, each keeping temporary files as its own params say. */
+    public BuildDeliverablesCommand(String root, String outputBaseDir, String deliverable, String ditaOtHome,
+            List<String> deliverableNames) {
+        this(root, outputBaseDir, deliverable, ditaOtHome, deliverableNames, null);
+    }
+}

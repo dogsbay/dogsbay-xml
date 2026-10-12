@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<schema xmlns="http://purl.oclc.org/dsdl/schematron" queryBinding="xslt2">
+  <title>House Rules</title>
+  <pattern id="shortdesc-required">
+    <rule context="concept | task | reference | topic">
+      <assert test="shortdesc">Every topic needs a short description.</assert>
+    </rule>
+  </pattern>
+</schema>

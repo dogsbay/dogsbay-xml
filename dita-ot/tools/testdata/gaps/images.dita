@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="images">
+  <title>Images</title>
+  <body>
+    <p>An inline image <image href="img.png" width="24px" height="24px"><alt>small</alt></image> in text.</p>
+    <image href="img.png" placement="break" align="center"><alt>Centered image</alt></image>
+    <p><image href="img.png" scale="50"/></p>
+    <image href="img.png" placement="break" align="left"><alt>Left image</alt></image>
+    <image href="img.png" placement="break" align="right"><alt>Right image</alt></image>
+    <p>A linked image: <xref href="tables.dita"><image href="img.png" height="16px"><alt>link icon</alt></image></xref>.</p>
+    <fig id="imgfig"><title>A figure with an image</title>
+      <image href="img.png" placement="break"><alt>Figure image</alt></image>
+      <p>Text in the figure.</p>
+    </fig>
+  </body>
+</topic>

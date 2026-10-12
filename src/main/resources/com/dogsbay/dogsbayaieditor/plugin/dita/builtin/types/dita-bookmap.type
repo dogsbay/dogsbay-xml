@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<type name="DITA 1.3 Bookmap" icon="" publicID="-//OASIS//DTD DITA BookMap//EN" systemID="bookmap.dtd" extensions="ditamap">
+	<root name="bookmap">
+		<namespace prefix="" uri=""/>
+	</root>
+
+	<!-- Topic references -->
+	<fragment block="true" name="topicref" key="Alt+Shift+R" order="0" icon="">&lt;topicref href="${cursor}" format="dita"/&gt;</fragment>
+	<fragment block="true" name="topicref (with navtitle)" key="Alt+Shift+T" order="1" icon="">&lt;topicref href="${cursor}" format="dita" navtitle=""&gt;
+&lt;/topicref&gt;</fragment>
+
+	<!-- Book structure -->
+	<fragment block="true" name="chapter" key="Alt+Shift+C" order="2" icon="">&lt;chapter href="${cursor}" format="dita"&gt;
+&lt;/chapter&gt;</fragment>
+	<fragment block="true" name="part" key="Alt+Shift+A" order="3" icon="">&lt;part href="${cursor}" format="dita"&gt;
+	&lt;chapter href="" format="dita"/&gt;
+&lt;/part&gt;</fragment>
+	<fragment block="true" name="appendix" key="Alt+Shift+X" order="4" icon="">&lt;appendix href="${cursor}" format="dita"&gt;
+&lt;/appendix&gt;</fragment>
+	<fragment block="true" name="preface" key="Alt+Shift+P" order="5" icon="">&lt;preface href="${cursor}" format="dita"/&gt;</fragment>
+	<fragment block="true" name="frontmatter" key="Alt+Shift+F" order="6" icon="">&lt;frontmatter&gt;
+	&lt;preface href="${cursor}" format="dita"/&gt;
+&lt;/frontmatter&gt;</fragment>
+	<fragment block="true" name="backmatter" key="Alt+Shift+B" order="7" icon="">&lt;backmatter&gt;
+	&lt;appendix href="${cursor}" format="dita"/&gt;
+&lt;/backmatter&gt;</fragment>
+
+	<!-- Book metadata -->
+	<fragment block="true" name="booktitle" key="Alt+Shift+I" order="8" icon="">&lt;booktitle&gt;
+	&lt;mainbooktitle&gt;${cursor}&lt;/mainbooktitle&gt;
+&lt;/booktitle&gt;</fragment>
+	<fragment block="true" name="bookrights" key="Alt+Shift+G" order="9" icon="">&lt;bookrights&gt;
+	&lt;copyrfirst&gt;&lt;year&gt;${cursor}&lt;/year&gt;&lt;/copyrfirst&gt;
+	&lt;bookowner&gt;&lt;organization&gt;&lt;/organization&gt;&lt;/bookowner&gt;
+&lt;/bookrights&gt;</fragment>
+
+	<!-- Key definitions -->
+	<fragment block="true" name="keydef" key="Alt+Shift+K" order="10" icon="">&lt;keydef keys="${cursor}" href="" format="dita"/&gt;</fragment>
+
+	<!-- Relationship table -->
+	<fragment block="true" name="reltable" key="Alt+Shift+L" order="11" icon="">&lt;reltable&gt;
+	&lt;relheader&gt;
+		&lt;relcolspec type="concept"/&gt;
+		&lt;relcolspec type="task"/&gt;
+		&lt;relcolspec type="reference"/&gt;
+	&lt;/relheader&gt;
+	&lt;relrow&gt;
+		&lt;relcell&gt;&lt;topicref href="${cursor}"/&gt;&lt;/relcell&gt;
+		&lt;relcell&gt;&lt;topicref href=""/&gt;&lt;/relcell&gt;
+		&lt;relcell&gt;&lt;topicref href=""/&gt;&lt;/relcell&gt;
+	&lt;/relrow&gt;
+&lt;/reltable&gt;</fragment>
+
+	<xpath name="Book Structure" xpath="//chapter | //part | //appendix | //preface | //frontmatter | //backmatter | //topicref[@navtitle] | //topichead" default="true" showElementNames="true" showElementContent="false" showAttributes="true" showAttributeNames="true"/>
+	<xpath name="Topic References" xpath="//topicref | //chapter | //appendix" default="false" showElementNames="true" showElementContent="false" showAttributes="true" showAttributeNames="true"/>
+
+	<validation src="" type="dtd" useDocumentLocation="true"/>
+</type>

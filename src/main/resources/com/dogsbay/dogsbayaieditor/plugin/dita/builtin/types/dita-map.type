@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<type name="DITA 1.3 Map" icon="" publicID="-//OASIS//DTD DITA Map//EN" systemID="map.dtd" extensions="ditamap">
+	<root name="map">
+		<namespace prefix="" uri=""/>
+	</root>
+
+	<!-- Topic references -->
+	<fragment block="true" name="topicref" key="Alt+Shift+R" order="0" icon="">&lt;topicref href="${cursor}" format="dita"/&gt;</fragment>
+	<fragment block="true" name="topicref (with navtitle)" key="Alt+Shift+T" order="1" icon="">&lt;topicref href="${cursor}" format="dita" navtitle=""&gt;
+&lt;/topicref&gt;</fragment>
+	<fragment block="true" name="topichead" key="Alt+Shift+H" order="2" icon="">&lt;topichead navtitle="${cursor}"&gt;
+	&lt;topicref href="" format="dita"/&gt;
+&lt;/topichead&gt;</fragment>
+	<fragment block="true" name="topicgroup" key="Alt+Shift+G" order="3" icon="">&lt;topicgroup&gt;
+	&lt;topicref href="${cursor}" format="dita"/&gt;
+&lt;/topicgroup&gt;</fragment>
+
+	<!-- Relationship table -->
+	<fragment block="true" name="reltable" key="Alt+Shift+L" order="4" icon="">&lt;reltable&gt;
+	&lt;relheader&gt;
+		&lt;relcolspec type="concept"/&gt;
+		&lt;relcolspec type="task"/&gt;
+		&lt;relcolspec type="reference"/&gt;
+	&lt;/relheader&gt;
+	&lt;relrow&gt;
+		&lt;relcell&gt;&lt;topicref href="${cursor}"/&gt;&lt;/relcell&gt;
+		&lt;relcell&gt;&lt;topicref href=""/&gt;&lt;/relcell&gt;
+		&lt;relcell&gt;&lt;topicref href=""/&gt;&lt;/relcell&gt;
+	&lt;/relrow&gt;
+&lt;/reltable&gt;</fragment>
+
+	<!-- Key definitions -->
+	<fragment block="true" name="keydef" key="Alt+Shift+K" order="5" icon="">&lt;keydef keys="${cursor}" href="" format="dita"/&gt;</fragment>
+
+	<xpath name="Topic References" xpath="//topicref | //topichead | //topicgroup | //keydef" default="true" showElementNames="true" showElementContent="false" showAttributes="true" showAttributeNames="true"/>
+
+	<validation src="" type="dtd" useDocumentLocation="true"/>
+</type>

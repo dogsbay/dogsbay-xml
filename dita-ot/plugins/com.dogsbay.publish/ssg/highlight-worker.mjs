@@ -1,0 +1,2 @@
+import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);
+import{D as o}from"./chunks/chunk-56F645YE.mjs";import"./chunks/chunk-4BCFY7K5.mjs";import{parentPort as r}from"node:worker_threads";var s=await o({cacheChars:0});r.on("message",async({id:t,blocks:a})=>{try{await s.load(a),r.postMessage({id:t,html:a.map(e=>s.render(e.code,e.lang,e.opts))})}catch(e){r.postMessage({id:t,error:e.message})}});

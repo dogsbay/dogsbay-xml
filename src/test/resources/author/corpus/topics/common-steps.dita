@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="common-steps">
+  <title>Common Steps</title>
+  <taskbody>
+    <steps>
+      <step id="select-region">
+        <cmd>Select the region of audio you want to process.</cmd>
+        <info><p>Click and drag in the waveform to select a region. The
+        selected area appears highlighted in blue. To select the entire
+        track, press <uicontrol>Ctrl+A</uicontrol> (Windows/Linux) or
+        <uicontrol>Cmd+A</uicontrol> (macOS).</p></info>
+      </step>
+      <step id="save-project">
+        <cmd>Save your project by choosing
+          <menucascade>
+            <uicontrol>File</uicontrol>
+            <uicontrol>Save Project</uicontrol>
+            <uicontrol>Save Project</uicontrol>
+          </menucascade>.
+        </cmd>
+      </step>
+    </steps>
+  </taskbody>
+</task>

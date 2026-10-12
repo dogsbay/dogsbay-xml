@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE concept PUBLIC "-//OASIS//DTD DITA Concept//EN" "concept.dtd">
+<concept id="podcast-production-workflow">
+  <title>Podcast Production Workflow</title>
+  <conbody>
+    <p audience="podcaster"><keyword keyref="product-name"/> is a popular
+    choice for podcast production because it is free, cross-platform, and
+    capable of professional-quality results. This topic outlines a typical
+    podcast production workflow.</p>
+
+    <section audience="podcaster">
+      <title>Pre-Production</title>
+      <p>Before recording:</p>
+      <ol>
+        <li>Test your microphone levels — aim for peaks around -12 dB to
+        leave headroom</li>
+        <li>Record in a quiet room with minimal echo</li>
+        <li>Use a pop filter to reduce plosive sounds (p, b, t)</li>
+        <li>Set your project to 44,100 Hz, 32-bit float for editing
+        flexibility</li>
+      </ol>
+    </section>
+
+    <section audience="podcaster">
+      <title>Recording</title>
+      <p>During recording:</p>
+      <ol>
+        <li>Record a few seconds of silence at the start for a noise
+        profile</li>
+        <li>Use <keyword keyref="product-name"/>'s
+        <uicontrol>Record</uicontrol> button or press
+        <uicontrol>R</uicontrol></li>
+        <li>Monitor levels in the recording meter — stay in the green
+        zone</li>
+        <li>If you make a mistake, pause briefly and re-record the
+        sentence (you will edit it out later)</li>
+      </ol>
+    </section>
+
+    <section audience="podcaster">
+      <title>Post-Production</title>
+      <p>After recording, process your audio in this order:</p>
+      <ol>
+        <li><b>Noise reduction</b> — remove background noise using the
+        noise profile from your silence recording</li>
+        <li><b>Editing</b> — trim mistakes, long pauses, and false
+        starts</li>
+        <li><b><abbreviated-form keyref="gl-normalization"/></b> — bring
+        the peak level to -1.0 dB</li>
+        <li><b><abbreviated-form keyref="gl-compression"/></b> — even out
+        volume differences (threshold -18 dB, ratio 3:1)</li>
+        <li><b>Export</b> — export as MP3 at 128 kbps mono for
+        distribution</li>
+      </ol>
+    </section>
+
+    <section audience="beginner">
+      <title>Getting Started with Podcasting</title>
+      <p>If you are new to podcasting, start simple: record, trim the
+      beginning and end, and export as MP3. As you gain experience, explore
+      noise reduction, compression, and other effects to polish your
+      sound.</p>
+    </section>
+  </conbody>
+</concept>

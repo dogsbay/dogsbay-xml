@@ -1,0 +1,113 @@
+/*
+ * Copyright (C) 2002-2026 DogsBay Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.dogsbay.dogsbayaieditor.dita.live;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+/** The project watcher that triggers a live preview's republish. */
+class ProjectWatcherTest {
+
+    @TempDir Path dir;
+
+    private ProjectWatcher watcher;
+    private final AtomicInteger changes = new AtomicInteger();
+
+    @AfterEach
+    void close() {
+        if (watcher != null) {
+            watcher.close();
+        }
+    }
+
+    private void start(Path excludedFolder) throws Exception {
+        watcher = new ProjectWatcher(dir, p -> excludedFolder != null && p.toAbsolutePath().normalize().startsWith(excludedFolder),
+                300, changes::incrementAndGet);
+        watcher.start();
+    }
+
+    /** Wait long enough for the debounce and a slow file system watcher (polling on some platforms). */
+    private static void settle() throws InterruptedException {
+        Thread.sleep(2500);
+    }
+
+    @Test
+    void reportsABurstOfChangesOnceAfterItSettles() throws Exception {
+        Files.createDirectories(dir.resolve("topics"));
+        start(null);
+        for (int i = 0; i < 5; i++) {
+            Files.writeString(dir.resolve("topics/t" + i + ".dita"), "<topic/>");
+        }
+        settle();
+        assertThat(changes.get()).isEqualTo(1);
+    }
+
+    @Test
+    void ignoresTheOutputFolderGitEditorStateAndDependencies() throws Exception {
+        Path out = dir.resolve("out/site");
+        for (String folder : new String[] { "out/site/content", ".git", ".dogsbay/build-times", "node_modules/x" }) {
+            Files.createDirectories(dir.resolve(folder));
+        }
+        start(out);
+        Files.writeString(out.resolve("content/page.md"), "# Page");
+        Files.writeString(dir.resolve(".git/index"), "x");
+        Files.writeString(dir.resolve(".dogsbay/build-times/builds.jsonl"), "{}");
+        Files.writeString(dir.resolve("node_modules/x/index.js"), "x");
+        Files.writeString(dir.resolve("guide.ditamap~"), "backup");
+        settle();
+        assertThat(changes.get()).isZero();
+
+        Files.writeString(dir.resolve("guide.ditamap"), "<map/>");
+        settle();
+        assertThat(changes.get()).isEqualTo(1);
+    }
+
+    @Test
+    void anEmptyFolderIsNotAChangeButAFolderOfTopicsIs() throws Exception {
+        // out/ is made on another preview's first publish; it holds no source (2026-09-19)
+        start(dir.resolve("out/site"));
+        Files.createDirectories(dir.resolve("out/site/content"));
+        settle();
+        assertThat(changes.get()).isZero();
+
+        Path moved = Files.createDirectories(dir.resolve("incoming/topics"));
+        Files.writeString(moved.resolve("a.dita"), "<topic/>");
+        Files.move(dir.resolve("incoming/topics"), dir.resolve("topics"));
+        settle();
+        assertThat(changes.get()).isEqualTo(1);
+    }
+
+    @Test
+    void watchesFoldersCreatedAfterItStarted() throws Exception {
+        start(null);
+        Files.createDirectories(dir.resolve("new/deeper"));
+        settle();
+        changes.set(0);
+        Files.writeString(dir.resolve("new/deeper/topic.dita"), "<topic/>");
+        settle();
+        assertThat(changes.get()).isEqualTo(1);
+    }
+}

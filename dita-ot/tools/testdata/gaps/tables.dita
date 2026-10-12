@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="tables">
+  <title>Tables</title>
+  <body>
+    <table id="spans">
+      <title>Spanning cells</title>
+      <tgroup cols="3">
+        <colspec colname="c1"/>
+        <colspec colname="c2"/>
+        <colspec colname="c3"/>
+        <thead>
+          <row><entry namest="c1" nameend="c2">Wide header</entry><entry>Third</entry></row>
+        </thead>
+        <tbody>
+          <row><entry morerows="1">Tall</entry><entry>b1</entry><entry>c1</entry></row>
+          <row><entry>b2</entry><entry>c2</entry></row>
+          <row><entry namest="c1" nameend="c3">Full width</entry></row>
+          <row><entry>a4</entry><entry namest="c2" nameend="c3" morerows="1">Wide and tall</entry></row>
+          <row><entry>a5</entry></row>
+        </tbody>
+      </tgroup>
+    </table>
+    <table id="colnum">
+      <title>A column without colnum</title>
+      <tgroup cols="3">
+        <colspec colnum="2" colname="b"/>
+        <colspec colname="c"/>
+        <tbody>
+          <row><entry>a</entry><entry namest="b" nameend="c">b and c</entry></row>
+        </tbody>
+      </tgroup>
+    </table>
+    <table frame="all" rowsep="1" colsep="1">
+      <tgroup cols="2">
+        <colspec colname="c1" colwidth="1*"/>
+        <colspec colname="c2" colwidth="3*"/>
+        <tbody>
+          <row><entry align="center" valign="middle">centered</entry><entry align="right">right</entry></row>
+          <row><entry>plain</entry><entry>plain</entry></row>
+        </tbody>
+      </tgroup>
+    </table>
+  </body>
+</topic>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="footnotes">
+  <title>Footnotes</title>
+  <body>
+    <p>Text with a note<fn>A note with x<sup>2</sup> in it.</fn> and another<fn>A second note.</fn>.</p>
+    <ul>
+      <li>A list item with a note<fn>A note in a list item.</fn>.</li>
+    </ul>
+  </body>
+</topic>

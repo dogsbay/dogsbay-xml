@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="repeated">
+  <title>Repeated element ids</title>
+  <body>
+    <p id="shared">The first topic's paragraph.</p>
+    <section id="untitled"><p>An untitled section.</p></section>
+    <ul>
+      <li id="blocks"><note>A list item with only a note.</note></li>
+    </ul>
+    <p>Links: <xref href="#repeated/shared">first</xref>, <xref href="#nested/shared">nested</xref>,
+      <xref href="#repeated/untitled">section</xref>, <xref href="#repeated/blocks">item</xref>.</p>
+  </body>
+  <topic id="nested">
+    <title>Nested topic</title>
+    <body>
+      <p id="shared">The nested topic's paragraph.</p>
+    </body>
+  </topic>
+</topic>

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="com.dogsbay.publish" xmlns:if="ant:if" xmlns:unless="ant:unless">
+
+  <target name="dogsbay.init">
+    <dirname property="dogsbay.plugin.dir" file="${ant.file.com.dogsbay.publish}"/>
+    <!-- The converter: dogsbay.cli when given; otherwise the single-file bundle of
+         `dogsbay publish-dita` the plugin carries; otherwise the dogsbay CLI on the PATH. -->
+    <condition property="dogsbay.converter" value="${dogsbay.cli}">
+      <isset property="dogsbay.cli"/>
+    </condition>
+    <condition property="dogsbay.converter" value="${dogsbay.plugin.dir}/converter/publish-dita.mjs">
+      <available file="${dogsbay.plugin.dir}/converter/publish-dita.mjs"/>
+    </condition>
+    <property name="dogsbay.converter" value="dogsbay"/>
+    <!-- No default for dogsbay.cli: nothing reads it after the condition above, and giving
+         it one would make that condition true for every build, silently replacing the
+         bundled converter with whatever `dogsbay` on the PATH is. -->
+    <property name="dogsbay.node" value="node"/>
+    <!-- The site builder: the dogsbay-ssg build entry the plugin carries, or
+         dogsbay-ssg on the PATH. Unlike the converter this is a folder — build.mjs
+         loads chunks/ beside it — so it cannot be pointed at a copied file. -->
+    <condition property="dogsbay.ssg" value="${dogsbay.plugin.dir}/ssg/build.mjs">
+      <available file="${dogsbay.plugin.dir}/ssg/build.mjs"/>
+    </condition>
+    <property name="dogsbay.ssg" value="dogsbay-ssg"/>
+    <dogsbay-program name="converter"/>
+    <dogsbay-program name="ssg"/>
+    <condition property="dogsbay.no.numbering">
+      <equals arg1="${dogsbay.numbering}" arg2="no" casesensitive="false"/>
+    </condition>
+    <condition property="dogsbay.family.links.on">
+      <equals arg1="${dogsbay.family.links}" arg2="yes" casesensitive="false"/>
+    </condition>
+    <condition property="dogsbay.task.labels">
+      <equals arg1="${args.gen.task.lbl}" arg2="YES" casesensitive="false"/>
+    </condition>
+  </target>
+
+  <!-- How to run dogsbay.@{name}: a script (dogsbay.@{name}.is.script, run with dogsbay.node) or a
+       command (dogsbay.@{name}.command) -->
+  <macrodef name="dogsbay-program">
+    <attribute name="name"/>
+    <sequential>
+      <condition property="dogsbay.@{name}.is.script">
+        <matches string="${dogsbay.@{name}}" pattern="\.[cm]?js$"/>
+      </condition>
+      <!-- A relative script path would resolve against DITA-OT's folders, not the directory
+           dita was run from (which Ant cannot see), so it must be absolute -->
+      <fail message="dogsbay.@{name} must be an absolute path to the script: ${dogsbay.@{name}}">
+        <condition>
+          <and>
+            <isset property="dogsbay.@{name}.is.script"/>
+            <not><matches string="${dogsbay.@{name}}" pattern="^(/|[A-Za-z]:[\\/]|\\\\)"/></not>
+          </and>
+        </condition>
+      </fail>
+      <!-- On Windows an npm-installed command is a .cmd shim, which exec does not find by name -->
+      <condition property="dogsbay.@{name}.command" value="${dogsbay.@{name}}.cmd" else="${dogsbay.@{name}}">
+        <and>
+          <os family="windows"/>
+          <not><matches string="${dogsbay.@{name}}" pattern="\.(cmd|bat|exe)$"/></not>
+        </and>
+      </condition>
+    </sequential>
+  </macrodef>
+
+  <!-- Runs dogsbay.@{program} (converter or cli) with the nested args -->
+  <macrodef name="dogsbay-run">
+    <attribute name="program"/>
+    <attribute name="dir" default="${output.dir}"/>
+    <element name="run-args" implicit="true"/>
+    <sequential>
+      <exec executable="${dogsbay.node}" dir="@{dir}" failonerror="true" searchpath="true" if:set="dogsbay.@{program}.is.script">
+        <arg file="${dogsbay.@{program}}"/>
+        <run-args/>
+      </exec>
+      <exec executable="${dogsbay.@{program}.command}" dir="@{dir}" failonerror="true" searchpath="true" unless:set="dogsbay.@{program}.is.script">
+        <run-args/>
+      </exec>
+    </sequential>
+  </macrodef>
+
+  <!-- Site project (Markdown, navigation, config) from DITA-OT's preprocessed temp folder. -->
+  <target name="dita2dogsbay" depends="dogsbay.init, build-init, preprocess2, dogsbay.convert"/>
+
+  <target name="dogsbay.convert">
+    <echo level="info">publish-dita ${dita.temp.dir} -o ${output.dir} (${dogsbay.converter})</echo>
+    <mkdir dir="${output.dir}"/>
+    <dogsbay-run program="converter">
+      <arg value="publish-dita"/>
+      <arg file="${dita.temp.dir}"/>
+      <arg value="-o"/>
+      <arg file="${output.dir}"/>
+      <arg value="--report"/>
+      <arg file="${output.dir}/publish-report.md"/>
+      <arg value="--task-labels" if:set="dogsbay.task.labels"/>
+      <arg value="--family-links" if:set="dogsbay.family.links.on"/>
+      <arg value="--no-numbering" if:set="dogsbay.no.numbering"/>
+      <!-- The files this publish changed, for a caller that keeps a site builder running
+           (the editor's live preview). Unset for an ordinary build, which needs no list.
+           The converter refuses a path inside the content folder, which it rewrites. -->
+      <arg value="--changed-paths" if:set="dogsbay.changed.paths"/>
+      <arg file="${dogsbay.changed.paths}" if:set="dogsbay.changed.paths"/>
+      <arg value="--dita-dir"/>
+      <arg file="${dita.dir}"/>
+      <!-- build-init always sets default.language (en); topics' xml:lang still wins -->
+      <arg value="--default-language" if:set="default.language"/>
+      <arg value="${default.language}" if:set="default.language"/>
+    </dogsbay-run>
+  </target>
+
+  <!-- The built site: HTML from the site project dita2dogsbay just wrote. -->
+  <target name="dita2dogsbay-site" depends="dita2dogsbay, dogsbay.site"/>
+
+  <!-- One pass of the dogsbay-ssg build entry over ${output.dir}, writing the site
+       to ${output.dir}/site. The site project (content/, nav.yml,
+       dogsbay.config.yml) is already there: publish-dita wrote it, including the
+       config, so nothing needs scaffolding and there is no package install and no
+       network access in this step.
+
+       The site goes in a subfolder rather than over ${output.dir} because the
+       builder refuses to write into a folder that holds something other than its
+       own output — and ${output.dir} holds the content it is reading. It excludes
+       its own output folder from that content, so building inside the project is
+       safe. -->
+  <target name="dogsbay.site">
+    <echo level="info">build ${output.dir} -o ${output.dir}/site (${dogsbay.ssg})</echo>
+    <!-- The builder refuses an output folder that is not a previous build of its own, and
+         this target has no way to pass the override for that, so clear it first. It is a
+         folder inside a build output folder, named by this target: nothing else writes it. -->
+    <delete dir="${output.dir}/site" quiet="true"/>
+    <dogsbay-run program="ssg" dir="${output.dir}">
+      <!-- The bundled ssg/build.mjs IS the build command and takes no subcommand; a
+           dogsbay-ssg on the PATH is the whole CLI, which needs one. -->
+      <arg value="build" unless:set="dogsbay.ssg.is.script"/>
+      <arg file="${output.dir}"/>
+      <arg value="-o"/>
+      <arg file="${output.dir}/site"/>
+    </dogsbay-run>
+  </target>
+</project>

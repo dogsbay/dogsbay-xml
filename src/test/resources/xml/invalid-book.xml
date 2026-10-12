@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<book xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="book.xsd">
+    <title>Test Book</title>
+    <author>Test Author</author>
+    <year>not-a-number</year>
+</book>

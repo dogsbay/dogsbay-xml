@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+<map>
+  <title>Audacity for Podcasters</title>
+
+  <mapref href="keydefs-product.ditamap"/>
+  <mapref href="keydefs-glossary.ditamap"/>
+
+  <topichead navtitle="Getting Started">
+    <topicref href="topics/what-is-audacity.dita"/>
+    <topicref href="topics/what-is-digital-audio.dita"/>
+    <topicref href="topics/installing-audacity.dita"/>
+  </topichead>
+
+  <topichead navtitle="Recording and Editing">
+    <topicref href="topics/recording-your-first-track.dita"/>
+    <topicref href="topics/trimming-audio.dita"/>
+    <topicref href="topics/removing-background-noise.dita"/>
+    <topicref href="topics/exporting-audio.dita"/>
+  </topichead>
+
+  <topichead navtitle="Podcast Production">
+    <topicref href="topics/podcast-production-workflow.dita"/>
+  </topichead>
+
+  <topichead navtitle="Reference">
+    <topicref href="topics/effects-reference.dita"/>
+    <topicref href="topics/supported-audio-formats.dita"/>
+    <topicref href="topics/keyboard-shortcuts.dita"/>
+  </topichead>
+</map>

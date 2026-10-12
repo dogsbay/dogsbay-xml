@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE concept PUBLIC "-//OASIS//DTD DITA Concept//EN" "concept.dtd">
+<concept id="namespaced-header" xmlns:ditaarch="http://dita.oasis-open.org/architecture/2005/" ditaarch:DITAArchVersion="1.3" xml:lang="en-US">
+  <title>A topic with the standard header</title>
+  <shortdesc>Written by Oxygen or DITA-OT, every topic declares the DITA architecture namespace.</shortdesc>
+  <conbody>
+    <p>The <ph>quick</ph> brown fox, and <ph>two</ph><ph>phrases</ph> side by side.</p>
+    <p>Plain text after the phrases with <b>bold</b> and <uicontrol>OK</uicontrol>.</p>
+  </conbody>
+</concept>

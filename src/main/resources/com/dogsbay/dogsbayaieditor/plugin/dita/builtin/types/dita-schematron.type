@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- House rules for a DITA project. ISO Schematron has an RELAX NG grammar rather than a DTD, and none
+     is bundled, so validation here is well-formedness; Project ▸ Validate ▸ Schematron runs the schema
+     itself, which is the check that matters for a rule set. -->
+<type name="Schematron Rules" icon="" publicID="" systemID="" extensions="sch">
+	<root name="schema">
+		<namespace prefix="" uri="http://purl.oclc.org/dsdl/schematron"/>
+	</root>
+
+	<!-- A rule set is patterns of rules, each rule a context with assertions -->
+	<fragment block="true" name="pattern" key="Alt+Shift+P" order="0" icon="">&lt;pattern id="${cursor}"&gt;
+	&lt;rule context=""&gt;
+		&lt;assert test=""&gt;&lt;/assert&gt;
+	&lt;/rule&gt;
+&lt;/pattern&gt;</fragment>
+	<fragment block="true" name="rule" key="Alt+Shift+R" order="1" icon="">&lt;rule context="${cursor}"&gt;
+	&lt;assert test=""&gt;&lt;/assert&gt;
+&lt;/rule&gt;</fragment>
+	<fragment block="true" name="assert (must be true)" key="Alt+Shift+A" order="2" icon="">&lt;assert test="${cursor}"&gt;&lt;/assert&gt;</fragment>
+	<fragment block="true" name="report (must not be true)" key="Alt+Shift+T" order="3" icon="">&lt;report test="${cursor}"&gt;&lt;/report&gt;</fragment>
+	<fragment block="true" name="assert (advisory, does not fail)" key="Alt+Shift+W" order="4" icon="">&lt;assert test="${cursor}" role="warning"&gt;&lt;/assert&gt;</fragment>
+
+	<!-- Reuse and messages -->
+	<fragment block="true" name="let (a named value)" key="Alt+Shift+L" order="5" icon="">&lt;let name="${cursor}" value=""/&gt;</fragment>
+	<fragment block="false" name="value-of (in a message)" key="Alt+Shift+V" order="6" icon="">&lt;value-of select="${cursor}"/&gt;</fragment>
+	<fragment block="false" name="name (the element in a message)" key="Alt+Shift+N" order="7" icon="">&lt;name/&gt;</fragment>
+	<fragment block="true" name="ns (a namespace prefix)" key="Alt+Shift+S" order="8" icon="">&lt;ns prefix="${cursor}" uri=""/&gt;</fragment>
+
+	<xpath name="Rules" xpath="//*[local-name()='pattern'] | //*[local-name()='rule']" default="true" showElementNames="true" showElementContent="false" showAttributes="true" showAttributeNames="true"/>
+	<xpath name="Assertions" xpath="//*[local-name()='assert'] | //*[local-name()='report']" default="false" showElementNames="true" showElementContent="true" showAttributes="true" showAttributeNames="true"/>
+
+	<validation src="" type="none" useDocumentLocation="false"/>
+</type>

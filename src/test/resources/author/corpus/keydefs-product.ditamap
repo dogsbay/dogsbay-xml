@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+<map>
+  <title>Product Key Definitions</title>
+
+  <keydef keys="product-name">
+    <topicmeta><keywords><keyword>Audacity</keyword></keywords></topicmeta>
+  </keydef>
+  <keydef keys="product-version">
+    <topicmeta><keywords><keyword>3.4</keyword></keywords></topicmeta>
+  </keydef>
+  <keydef keys="download-url">
+    <topicmeta><keywords><keyword>https://www.audacityteam.org/download/</keyword></keywords></topicmeta>
+  </keydef>
+  <keydef keys="project-extension">
+    <topicmeta><keywords><keyword>.aup3</keyword></keywords></topicmeta>
+  </keydef>
+</map>

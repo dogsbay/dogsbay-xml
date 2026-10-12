@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+
+<map>
+  <title>Key Definitions</title>
+  <keydef keys="installing" href="topic.dita"/>
+  <keydef keys="product-name">
+    <topicmeta>
+      <keywords>
+        <keyword>Product Name</keyword>
+      </keywords>
+    </topicmeta>
+  </keydef>
+</map>

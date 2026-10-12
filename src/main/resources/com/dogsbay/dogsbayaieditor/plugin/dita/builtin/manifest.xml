@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<profile name="DITA 1.3" version="1.0">
+  <description>DITA 1.3 authoring profile: topic types (concept, task, reference, topic, troubleshooting, glossary entry and group), map types (map, bookmap, subject scheme), and the two files a project needs beside them — a DITAVAL filter and a Schematron rule set.</description>
+
+  <types>
+    <type src="types/dita-concept.type"/>
+    <type src="types/dita-task.type"/>
+    <type src="types/dita-reference.type"/>
+    <type src="types/dita-topic.type"/>
+    <type src="types/dita-map.type"/>
+    <type src="types/dita-bookmap.type"/>
+    <type src="types/dita-glossentry.type"/>
+    <type src="types/dita-glossgroup.type"/>
+    <type src="types/dita-troubleshooting.type"/>
+    <type src="types/dita-subject-scheme.type"/>
+    <type src="types/dita-ditaval.type"/>
+    <type src="types/dita-schematron.type"/>
+  </types>
+
+  <templates>
+    <template name="Concept" src="templates/dita-concept-minimal.xml"/>
+    <template name="Concept (annotated)" src="templates/dita-concept-template.xml"/>
+    <template name="Task" src="templates/dita-task-minimal.xml"/>
+    <template name="Task (annotated)" src="templates/dita-task-template.xml"/>
+    <template name="Reference" src="templates/dita-reference-minimal.xml"/>
+    <template name="Reference (annotated)" src="templates/dita-reference-template.xml"/>
+    <template name="Topic" src="templates/dita-topic-minimal.xml"/>
+    <template name="Troubleshooting" src="templates/dita-troubleshooting-minimal.xml"/>
+    <template name="Glossary Entry" src="templates/dita-glossentry-minimal.xml"/>
+    <template name="Glossary Group" src="templates/dita-glossgroup-minimal.xml"/>
+    <template name="Map" src="templates/dita-map-minimal.xml"/>
+    <template name="Key Definition Map" src="templates/dita-keydef-map-minimal.xml"/>
+    <template name="Bookmap" src="templates/dita-bookmap-minimal.xml"/>
+    <template name="Subject Scheme" src="templates/dita-subject-scheme-minimal.xml"/>
+    <template name="DITAVAL" src="templates/dita-ditaval-minimal.xml"/>
+    <template name="Schematron Rules" src="templates/dita-schematron-minimal.xml"/>
+  </templates>
+
+  <scenarios/>
+
+  <tool name="dita-ot" src="dita-ot"/>
+
+  <catalogs>
+    <catalog src="dtd/catalog.xml"/>
+  </catalogs>
+
+</profile>

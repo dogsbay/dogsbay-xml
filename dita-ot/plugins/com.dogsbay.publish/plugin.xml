@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  com.dogsbay.publish: publish a DITA deliverable as a dogsbay site.
+
+  dogsbay       DITA-OT preprocessing, then the publish-dita converter on the
+                temp folder: content/*.md, content/nav.yml, dogsbay.config.yml.
+                The converter is converter/publish-dita.mjs (run with Node.js),
+                or the dogsbay CLI when dogsbay.cli names it.
+  dogsbay-site  dogsbay, then the dogsbay-ssg build entry over that site
+                project: HTML in site/, .md copies, llms.txt, search index.
+                The builder is ssg/build.mjs (run with Node.js); it needs no
+                package install and no network access.
+
+  Conditions are resolved by DITA-OT with args.filter, as for any output.
+-->
+<plugin id="com.dogsbay.publish" version="0.2.0.beta-115">
+  <require plugin="org.dita.base"/>
+  <transtype name="dogsbay" desc="dogsbay site project (Markdown, navigation, site config)">
+    <param name="dogsbay.cli" desc="The dogsbay CLI: a command on the PATH, or an absolute path to its bin script. When given, it converts instead of the plugin's converter/publish-dita.mjs" type="string"/>
+    <param name="dogsbay.node" desc="The Node.js executable that runs a script converter or site builder (default: node on the PATH)" type="file"/>
+    <param name="dogsbay.family.links" desc="Parent, previous and next topic links after each topic, as the html5 output has them (a dogsbay site has previous/next buttons and a sidebar)" type="enum">
+      <val>yes</val>
+      <val default="true">no</val>
+    </param>
+    <param name="dogsbay.numbering" desc="Number titled tables and figures (Table 1., Figure 1.) as the html5 output does" type="enum">
+      <val default="true">yes</val>
+      <val>no</val>
+    </param>
+  </transtype>
+  <transtype name="dogsbay-site" extends="dogsbay" desc="dogsbay site (HTML, .md copies, llms.txt, search)">
+    <param name="dogsbay.ssg" desc="The dogsbay-ssg site builder: an absolute path to its build.mjs, or a dogsbay-ssg command on the PATH (default: the plugin's ssg/build.mjs). It must be build.mjs, not the CLI's bin script, and a copied build.mjs will not work on its own: it loads chunks/ from beside itself" type="string"/>
+  </transtype>
+  <feature extension="ant.import" file="build_dogsbay.xml"/>
+</plugin>

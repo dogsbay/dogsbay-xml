@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="anchors">
+  <title>Anchors</title>
+  <body>
+    <p id="para">A paragraph with an id.</p>
+    <ul>
+      <li id="item">A list item with an id.</li>
+    </ul>
+    <note id="warn" type="warning">A note with an id.</note>
+    <fig id="figure"><title>A figure</title><codeblock>code</codeblock></fig>
+    <section id="sec"><title>Section</title>
+      <p id="inner">Inside a section.</p>
+    </section>
+    <p>Links: <xref href="#anchors/para"/>, <xref href="#anchors/item">item</xref>, <xref href="#anchors/warn">note</xref>,
+      <xref href="#anchors/figure">figure</xref>, <xref href="#anchors/inner">inner</xref>,
+      <xref href="tables.dita#tables/spans">table</xref>.</p>
+  </body>
+</topic>

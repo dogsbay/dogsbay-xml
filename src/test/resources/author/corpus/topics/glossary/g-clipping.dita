@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE glossentry PUBLIC "-//OASIS//DTD DITA Glossary Entry//EN" "glossentry.dtd">
+<glossentry id="gl-clipping">
+  <glossterm>Clipping</glossterm>
+  <glossdef>Distortion that occurs when an audio signal exceeds the maximum
+  level the system can represent. Clipped audio sounds harsh and crackly.
+  In Audacity, clipped samples appear as flat-topped waveforms touching
+  the top or bottom of the track.</glossdef>
+</glossentry>

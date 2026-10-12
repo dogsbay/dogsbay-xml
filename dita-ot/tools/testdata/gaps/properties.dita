@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd">
+<reference id="properties">
+  <title>Properties tables</title>
+  <refbody>
+    <properties id="generated">
+      <property><proptype>string</proptype><propvalue>"a"</propvalue><propdesc>A name.</propdesc></property>
+      <property><proptype>int</proptype><propvalue>3</propvalue><propdesc>A count.</propdesc></property>
+      <property/>
+    </properties>
+    <properties id="authored">
+      <prophead><proptypehd>Kind</proptypehd><propvaluehd>Default</propvaluehd><propdeschd>Meaning</propdeschd></prophead>
+      <property><proptype>bool</proptype><propdesc>A flag without a default.</propdesc></property>
+    </properties>
+    <properties id="empty"><property/></properties>
+  </refbody>
+</reference>

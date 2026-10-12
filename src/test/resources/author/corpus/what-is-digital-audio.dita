@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE concept PUBLIC "-//OASIS//DTD DITA Concept//EN" "concept.dtd">
+<concept id="what-is-digital-audio">
+  <title>What is Digital Audio?</title>
+  <conbody>
+    <p>Digital audio is sound that has been converted into a numerical
+    representation. Understanding a few key concepts will help you make
+    better recordings and edits in <keyword keyref="product-name"/>.</p>
+
+    <p audience="beginner">You do not need to understand all these details to
+    start recording. The default settings in <keyword keyref="product-name"/>
+    work well for most purposes. Come back to this topic later when you want
+    to fine-tune your recordings.</p>
+
+    <section>
+      <title>Waveforms</title>
+      <p>Sound travels through air as a continuous
+      <abbreviated-form keyref="gl-waveform"/> of pressure changes. A
+      microphone converts these pressure changes into an electrical signal.
+      To store this signal digitally, the computer takes thousands of
+      measurements (samples) of the signal's amplitude per second.</p>
+    </section>
+
+    <section audience="podcaster">
+      <title>Sample Rate</title>
+      <p>The <abbreviated-form keyref="gl-sample-rate"/> is the number of
+      samples captured per second, measured in Hertz (Hz). Common sample
+      rates include:</p>
+      <ul>
+        <li>44,100 Hz (CD quality) — sufficient for most audio work</li>
+        <li>48,000 Hz — standard for video production</li>
+        <li>96,000 Hz — used in professional music production</li>
+      </ul>
+      <p>A higher sample rate captures more detail but produces larger files.</p>
+    </section>
+
+    <section audience="podcaster">
+      <title>Bit Depth</title>
+      <p><abbreviated-form keyref="gl-bit-depth"/> determines how precisely
+      each sample's amplitude is recorded. Common bit depths are:</p>
+      <ul>
+        <li>16-bit — CD quality, 65,536 possible amplitude values</li>
+        <li>24-bit — professional quality, over 16 million values</li>
+        <li>32-bit float — used internally by Audacity for lossless editing</li>
+      </ul>
+    </section>
+
+    <section>
+      <title>Key Audio Terms</title>
+      <dl>
+        <dlentry>
+          <dt>Amplitude</dt>
+          <dd>The height of a sound wave, corresponding to how loud the
+          sound is. Measured in decibels (dB).</dd>
+        </dlentry>
+        <dlentry>
+          <dt>Clipping</dt>
+          <dd>Distortion that occurs when the audio signal exceeds the
+          maximum amplitude the system can represent. Appears as flat-topped
+          waveforms.</dd>
+        </dlentry>
+        <dlentry>
+          <dt>Mono vs. Stereo</dt>
+          <dd>Mono audio uses a single channel; stereo uses two channels
+          (left and right) to create a sense of spatial width.</dd>
+        </dlentry>
+      </dl>
+    </section>
+  </conbody>
+  <related-links>
+    <link href="recording-your-first-track.dita"/>
+    <link href="supported-audio-formats.dita"/>
+  </related-links>
+</concept>

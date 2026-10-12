@@ -1,0 +1,101 @@
+/*
+ * Copyright (C) 2002-2026 DogsBay Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.dogsbay.dogsbayaieditor.commands.results;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * One rule that fired in many files, reported once. Twenty-four files missing
+ * the same required {@code <keyword>} were twenty-four copies of one message;
+ * as a group they are one message, a count and the files.
+ *
+ * @param rule     what fired: the metadata field, or the Schematron test
+ * @param severity {@code error} when it blocks a clean report, else {@code warning}
+ * @param message  the message, once
+ * @param count    how many findings the group holds
+ * @param files    where, as {@code file:line} (or {@code file} when no line), capped at {@value #FILE_CAP}
+ */
+public record RuleGroup(String rule, String severity, String message, int count, List<String> files) {
+
+    /** Enough to find and fix the pattern; {@code count} carries the true total. */
+    public static final int FILE_CAP = 100;
+
+    public RuleGroup {
+        files = files == null ? List.of() : List.copyOf(files);
+    }
+
+    /** Metadata findings grouped by field, severity and message, largest group first. */
+    public static List<RuleGroup> ofMetadata(List<MetadataFinding> findings) {
+        Map<String, Builder> groups = new LinkedHashMap<>();
+        for (MetadataFinding f : findings) {
+            String severity = "error".equals(f.severity()) ? "error" : "warning";
+            groups.computeIfAbsent(f.field() + '\u0000' + severity + '\u0000' + f.message(),
+                    k -> new Builder(f.field(), severity, f.message())).add(f.file(), f.line());
+        }
+        return sorted(groups);
+    }
+
+    /** Schematron findings grouped by test and message, largest group first. */
+    public static List<RuleGroup> ofSchematron(List<SchematronFinding> findings) {
+        Map<String, Builder> groups = new LinkedHashMap<>();
+        for (SchematronFinding f : findings) {
+            String severity = ProjectHealthReport.blocks(f) ? "error" : "warning";
+            String rule = f.test() == null ? "" : f.test();
+            groups.computeIfAbsent(rule + '\u0000' + severity + '\u0000' + f.message(),
+                    k -> new Builder(rule, severity, f.message())).add(f.file(), f.line());
+        }
+        return sorted(groups);
+    }
+
+    private static List<RuleGroup> sorted(Map<String, Builder> groups) {
+        return groups.values().stream()
+                .map(Builder::build)
+                .sorted(Comparator.comparingInt(RuleGroup::count).reversed())
+                .toList();
+    }
+
+    private static final class Builder {
+        private final String rule;
+        private final String severity;
+        private final String message;
+        private final List<String> files = new ArrayList<>();
+        private int count;
+
+        Builder(String rule, String severity, String message) {
+            this.rule = rule;
+            this.severity = severity;
+            this.message = message;
+        }
+
+        void add(String file, int line) {
+            count++;
+            if (files.size() < FILE_CAP) {
+                files.add(line > 0 ? file + ":" + line : file);
+            }
+        }
+
+        RuleGroup build() {
+            return new RuleGroup(rule, severity, message, count, files);
+        }
+    }
+}

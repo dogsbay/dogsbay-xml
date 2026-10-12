@@ -1,0 +1,41 @@
+/*
+ * Copyright (C) 2002-2026 DogsBay Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.dogsbay.dogsbayaieditor.commands.results;
+
+/**
+ * One controlled-value violation found by {@code validate_conditions}: a profiling
+ * attribute (in a topic/map element, or a DITAVAL {@code <prop>}) carries a value
+ * the governing subjectScheme doesn't allow. Carried as a finding in a
+ * {@code BatchResult}.
+ *
+ * @param file       the file containing the violation (absolute path)
+ * @param attribute  the governed attribute (e.g. {@code platform})
+ * @param value      the offending token (e.g. {@code macos})
+ * @param message    a human-readable description (includes the suggestion if any)
+ * @param suggestion the nearest allowed value (e.g. {@code mac}), or null
+ * @param line       1-based source line, or -1 if unresolved
+ */
+public record ConditionViolation(
+    String file,
+    String attribute,
+    String value,
+    String message,
+    String suggestion,
+    int line
+) {}

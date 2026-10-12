@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!--
+    The application icon: the same paw as the website and the blog
+    (dogsbay-ai-site/astro/public/favicon.svg), redrawn with plain fill
+    attributes so any renderer can rasterise it — the web version carries the
+    colour in a <style> block with a prefers-color-scheme rule, which an icon
+    rasteriser ignores.
+
+    FILLED, not stroked, and the toes sit slightly high with the pad slightly
+    low: at 16px a tighter arrangement fuses the toes into a single bar, and an
+    outlined version reads as a face once adjacent strokes merge.
+
+    One fixed colour here, unlike the favicon: a window manager composites an
+    app icon against a taskbar it never tells us the colour of. The web light
+    mode teal is mid-toned enough to hold up on both.
+  -->
+  <g fill="#1e6e7d">
+    <ellipse cx="14.5" cy="29.5" rx="6.3" ry="8.6" transform="rotate(-22 14.5 29.5)"/>
+    <ellipse cx="26" cy="17.5" rx="6.3" ry="9.2" transform="rotate(-8 26 17.5)"/>
+    <ellipse cx="40" cy="17.5" rx="6.3" ry="9.2" transform="rotate(8 40 17.5)"/>
+    <ellipse cx="51.5" cy="29.5" rx="6.3" ry="8.6" transform="rotate(22 51.5 29.5)"/>
+    <path d="M32 36c9.8 0 16.8 6.8 16.8 13.8S41.8 59.5 32 59.5 15.2 54.3 15.2 47.3 22.2 36 32 36Z"/>
+  </g>
+</svg>

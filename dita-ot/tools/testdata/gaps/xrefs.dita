@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="xrefs">
+  <title>Cross-references to tables and figures</title>
+  <body>
+    <p>To a table in another topic: <xref href="tables.dita#tables/spans"/>.</p>
+    <p>To a figure in another topic: <xref href="anchors.dita#anchors/figure"/>.</p>
+    <table id="local"><title>A local table</title>
+      <tgroup cols="1"><tbody><row><entry>x</entry></row></tbody></tgroup>
+    </table>
+    <p>To a table in this topic: <xref href="#xrefs/local"/>.</p>
+    <p>To a repeated id in a nested topic of another file: <xref href="repeated-ids.dita#nested/shared">nested</xref>.</p>
+  </body>
+</topic>

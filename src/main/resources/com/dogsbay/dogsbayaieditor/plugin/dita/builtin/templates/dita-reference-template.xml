@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DITA Reference//EN" "reference.dtd">
+<reference id="reference_id">
+    <title>Reference Title - API/Command/Component Name</title>
+
+    <shortdesc>Brief description of what this reference documents.</shortdesc>
+
+    <prolog>
+        <author>Author Name</author>
+        <critdates>
+            <created date="2025-12-10"/>
+        </critdates>
+        <metadata>
+            <keywords>
+                <keyword>reference keyword</keyword>
+                <keyword>API</keyword>
+            </keywords>
+        </metadata>
+    </prolog>
+
+    <refbody>
+        <!-- Overview section -->
+        <section>
+            <title>Overview</title>
+            <p>General description of the reference item (API, command, component, etc.).</p>
+        </section>
+
+        <!-- Syntax section -->
+        <section>
+            <title>Syntax</title>
+            <codeblock outputclass="language-java">public ReturnType methodName(ParameterType param1, ParameterType param2)</codeblock>
+        </section>
+
+        <!-- Parameters/Properties table -->
+        <section>
+            <title>Parameters</title>
+            <table frame="all">
+                <title>Method Parameters</title>
+                <tgroup cols="4">
+                    <colspec colname="c1" colnum="1" colwidth="1.5*"/>
+                    <colspec colname="c2" colnum="2" colwidth="1.0*"/>
+                    <colspec colname="c3" colnum="3" colwidth="1.0*"/>
+                    <colspec colname="c4" colnum="4" colwidth="2.0*"/>
+                    <thead>
+                        <row>
+                            <entry>Parameter</entry>
+                            <entry>Type</entry>
+                            <entry>Required</entry>
+                            <entry>Description</entry>
+                        </row>
+                    </thead>
+                    <tbody>
+                        <row>
+                            <entry><codeph>param1</codeph></entry>
+                            <entry><codeph>String</codeph></entry>
+                            <entry>Yes</entry>
+                            <entry>Description of parameter 1</entry>
+                        </row>
+                        <row>
+                            <entry><codeph>param2</codeph></entry>
+                            <entry><codeph>int</codeph></entry>
+                            <entry>No</entry>
+                            <entry>Description of parameter 2. Default: 0</entry>
+                        </row>
+                    </tbody>
+                </tgroup>
+            </table>
+        </section>
+
+        <!-- Return value section -->
+        <section>
+            <title>Return Value</title>
+            <p>Type: <codeph>ReturnType</codeph></p>
+            <p>Description of what is returned and when.</p>
+        </section>
+
+        <!-- Properties section (alternative to parameters for configuration) -->
+        <properties>
+            <property>
+                <proptype>String</proptype>
+                <propvalue>propertyName</propvalue>
+                <propdesc>Description of the property and its purpose</propdesc>
+            </property>
+            <property>
+                <proptype>boolean</proptype>
+                <propvalue>enableFeature</propvalue>
+                <propdesc>Whether to enable the feature. Default: false</propdesc>
+            </property>
+        </properties>
+
+        <!-- Exceptions/Errors section -->
+        <section>
+            <title>Exceptions</title>
+            <table frame="all">
+                <title>Exceptions Thrown</title>
+                <tgroup cols="2">
+                    <colspec colname="c1" colnum="1" colwidth="1.5*"/>
+                    <colspec colname="c2" colnum="2" colwidth="2.5*"/>
+                    <thead>
+                        <row>
+                            <entry>Exception</entry>
+                            <entry>Condition</entry>
+                        </row>
+                    </thead>
+                    <tbody>
+                        <row>
+                            <entry><codeph>IllegalArgumentException</codeph></entry>
+                            <entry>When param1 is null or empty</entry>
+                        </row>
+                        <row>
+                            <entry><codeph>IOException</codeph></entry>
+                            <entry>When file cannot be read</entry>
+                        </row>
+                    </tbody>
+                </tgroup>
+            </table>
+        </section>
+
+        <!-- Examples section -->
+        <example>
+            <title>Example 1: Basic Usage</title>
+            <codeblock outputclass="language-java">// Basic example
+ReturnType result = methodName("value1", 42);
+System.out.println(result);</codeblock>
+        </example>
+
+        <example>
+            <title>Example 2: Advanced Usage</title>
+            <codeblock outputclass="language-java">// Advanced example with error handling
+try {
+    ReturnType result = methodName("value1", 42);
+    // Process result
+} catch (IllegalArgumentException e) {
+    // Handle error
+}</codeblock>
+        </example>
+
+        <!-- Notes and remarks -->
+        <section>
+            <title>Remarks</title>
+            <note type="note">Additional notes about usage or behavior.</note>
+            <note type="important">Important information about limitations or requirements.</note>
+        </section>
+
+        <!-- Version information -->
+        <section>
+            <title>Version Information</title>
+            <p>Available since: Version 1.0</p>
+            <p>Deprecated in: Not deprecated</p>
+        </section>
+    </refbody>
+
+    <related-links>
+        <link href="related-concept.xml" format="dita" type="concept">
+            <linktext>Related Concept</linktext>
+        </link>
+        <link href="related-task.xml" format="dita" type="task">
+            <linktext>How to Use This API</linktext>
+        </link>
+    </related-links>
+</reference>

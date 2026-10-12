@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- OASIS ships no grammar for DITAVAL, so this type carries no publicID/systemID and validation is
+     well-formedness only. It exists for the fragments and the outline: a filter file is small and
+     entirely attributes, which is exactly where completion helps most. -->
+<type name="DITA Conditional Filter (DITAVAL)" icon="" publicID="" systemID="" extensions="ditaval">
+	<root name="val">
+		<namespace prefix="" uri=""/>
+	</root>
+
+	<!-- The four actions a property can take -->
+	<fragment block="true" name="prop (exclude)" key="Alt+Shift+E" order="0" icon="">&lt;prop att="${cursor}" val="" action="exclude"/&gt;</fragment>
+	<fragment block="true" name="prop (include)" key="Alt+Shift+I" order="1" icon="">&lt;prop att="${cursor}" val="" action="include"/&gt;</fragment>
+	<fragment block="true" name="prop (flag)" key="Alt+Shift+F" order="2" icon="">&lt;prop att="${cursor}" val="" action="flag"&gt;
+	&lt;startflag&gt;
+		&lt;alt-text&gt;&lt;/alt-text&gt;
+	&lt;/startflag&gt;
+&lt;/prop&gt;</fragment>
+	<fragment block="true" name="prop (passthrough)" key="Alt+Shift+T" order="3" icon="">&lt;prop att="${cursor}" val="" action="passthrough"/&gt;</fragment>
+
+	<!-- Whole-attribute and whole-document defaults -->
+	<fragment block="true" name="prop (every value of an attribute)" key="Alt+Shift+A" order="4" icon="">&lt;prop att="${cursor}" action="exclude"/&gt;</fragment>
+	<fragment block="true" name="style-conflict" key="Alt+Shift+C" order="5" icon="">&lt;style-conflict foreground-conflict-color="${cursor}" background-conflict-color=""/&gt;</fragment>
+	<fragment block="true" name="revprop" key="Alt+Shift+R" order="6" icon="">&lt;revprop val="${cursor}" action="flag"/&gt;</fragment>
+
+	<xpath name="Filters" xpath="//prop | //revprop" default="true" showElementNames="true" showElementContent="false" showAttributes="true" showAttributeNames="true"/>
+
+	<validation src="" type="none" useDocumentLocation="false"/>
+</type>

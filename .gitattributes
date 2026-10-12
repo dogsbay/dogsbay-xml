@@ -1,0 +1,57 @@
+# Normalize all text to LF in the repository; check out LF on every platform.
+# Git auto-detects text vs binary; the explicit rules below remove ambiguity.
+* text=auto eol=lf
+
+# Windows scripts must stay CRLF to run correctly.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Explicit text types (LF) — belt-and-suspenders for the common source/doc kinds.
+*.java        text eol=lf
+*.kt          text eol=lf
+*.kts         text eol=lf
+*.gradle      text eol=lf
+*.xml         text eol=lf
+*.xsd         text eol=lf
+*.dtd         text eol=lf
+*.rng         text eol=lf
+*.dita        text eol=lf
+*.ditamap     text eol=lf
+*.xsl         text eol=lf
+*.xslt        text eol=lf
+*.properties  text eol=lf
+*.md          text eol=lf
+*.txt         text eol=lf
+*.json        text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
+*.sh          text eol=lf
+*.css         text eol=lf
+*.html        text eol=lf
+*.js          text eol=lf
+*.svg         text eol=lf
+
+# Binary — never touch line endings or diff as text.
+*.jar     binary
+*.zip     binary
+*.gz      binary
+*.tar     binary
+*.class   binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.bmp     binary
+*.jbf     binary
+*.pdf     binary
+*.ttf     binary
+*.otf     binary
+*.woff    binary
+*.woff2   binary
+*.eot     binary
+*.so      binary
+*.dll     binary
+*.dylib   binary
+*.keystore binary
+*.jks     binary

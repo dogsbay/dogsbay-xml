@@ -1,0 +1,164 @@
+/*
+ * Copyright (C) 2002-2026 DogsBay Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.dogsbay.dogsbayaieditor.commands.results;
+
+import java.util.List;
+
+import com.dogsbay.dogsbayaieditor.ditaproject.BatchResult;
+
+/**
+ * Comprehensive project health: the reuse-health checks (broken references,
+ * undefined/unused keys, orphan topics), DTD/grammar validation of the scope,
+ * <em>and</em> the conref element-id audit (reuse references whose target file
+ * exists but whose {@code #fragment} id is missing).
+ *
+ * <p>This makes "clean" a trustworthy done-signal: it is true only when the
+ * project validates, is reuse-healthy, and has no broken element ids — closing
+ * the two capstone gaps (invalid topics, and typo'd conref ids) that let an agent
+ * declare a guide "publish-ready" when it was not. Still <em>not</em> covered:
+ * hardcoded product text and markup style.
+ *
+ * <p>When the command asked for grouped rules, metadata and Schematron findings
+ * arrive in {@code metadataRules} and {@code schematronRules} instead of the
+ * per-file lists, whose counts stay; "clean" reads whichever form is filled.
+ *
+ * @param reuse            the reuse-health report (refs, keys, orphans)
+ * @param validation       per-file DTD/grammar validation of the scope (failing files)
+ * @param brokenElementIds reuse references pointing at a missing element id
+ * @param metadata         required-metadata policy audit (empty when no policy);
+ *                         only <em>error</em>-level findings block "clean"
+ * @param openProposals    files still carrying review proposals
+ * @param schematron       house-rule findings when the command was given a
+ *                         Schematron schema; empty and clean when it was not
+ * @param metadataRules    metadata findings grouped by rule, when grouping was asked for
+ * @param schematronRules  Schematron findings grouped by rule, when grouping was asked for
+ * @param checked          the legs that ran; a leg not listed was not checked, so it says nothing
+ * @param conrefPush       conref pushes that go nowhere, or marks that match nothing
+ * @param danglingIndex    index see/see-also redirects to entries that do not exist
+ * @param unformatted      files not in the project's house style (warnings)
+ * @param markers          authoring leftovers: TODOs, draft-comments, tasks without steps (warnings)
+ * @param pendingFixes     findings only on the side of open proposals that accepting them removes
+ * @param conditions       profiling values a subjectScheme's controlled vocabulary does not allow
+ * @param defaults         the root map and house rules used, and where they came from
+ */
+public record ProjectHealthReport(
+    HealthReport reuse,
+    BatchResult<FileValidation> validation,
+    List<BrokenRef> brokenElementIds,
+    BatchResult<MetadataFinding> metadata,
+    List<OpenProposals> openProposals,
+    BatchResult<SchematronFinding> schematron,
+    List<RuleGroup> metadataRules,
+    List<RuleGroup> schematronRules,
+    List<String> checked,
+    List<ConrefPushAuditResult.Issue> conrefPush,
+    List<IndexAuditResult.DanglingSee> danglingIndex,
+    List<String> unformatted,
+    List<HealthMarker> markers,
+    List<PendingFix> pendingFixes,
+    BatchResult<ConditionViolation> conditions,
+    HealthDefaults defaults
+) {
+    public ProjectHealthReport {
+        reuse = reuse == null ? new HealthReport(List.of(), List.of(), List.of(), List.of()) : reuse;
+        validation = validation == null ? new BatchResult<>(0, 0, 0, List.of(), 0) : validation;
+        brokenElementIds = brokenElementIds == null ? List.of() : List.copyOf(brokenElementIds);
+        metadata = metadata == null
+                ? new BatchResult<>(0, 0, 0, List.of(), 0) : metadata;
+        openProposals = openProposals == null ? List.of() : List.copyOf(openProposals);
+        schematron = schematron == null
+                ? new BatchResult<>(0, 0, 0, List.of(), 0) : schematron;
+        metadataRules = metadataRules == null ? List.of() : List.copyOf(metadataRules);
+        schematronRules = schematronRules == null ? List.of() : List.copyOf(schematronRules);
+        checked = checked == null ? List.of() : List.copyOf(checked);
+        conrefPush = conrefPush == null ? List.of() : List.copyOf(conrefPush);
+        danglingIndex = danglingIndex == null ? List.of() : List.copyOf(danglingIndex);
+        unformatted = unformatted == null ? List.of() : List.copyOf(unformatted);
+        markers = markers == null ? List.of() : List.copyOf(markers);
+        pendingFixes = pendingFixes == null ? List.of() : List.copyOf(pendingFixes);
+        conditions = conditions == null ? new BatchResult<>(0, 0, 0, List.of(), 0) : conditions;
+    }
+
+    /** The legs before conref push, index, format and markers, and before defaults were reported. */
+    public ProjectHealthReport(HealthReport reuse, BatchResult<FileValidation> validation,
+            List<BrokenRef> brokenElementIds, BatchResult<MetadataFinding> metadata,
+            List<OpenProposals> openProposals, BatchResult<SchematronFinding> schematron,
+            List<RuleGroup> metadataRules, List<RuleGroup> schematronRules, List<String> checked) {
+        this(reuse, validation, brokenElementIds, metadata, openProposals, schematron, metadataRules,
+                schematronRules, checked, null, null, null, null, null, null, null);
+    }
+
+    /** Without a Schematron leg — the shape before the {@code --schematron} option existed. */
+    public ProjectHealthReport(HealthReport reuse, BatchResult<FileValidation> validation,
+            List<BrokenRef> brokenElementIds, BatchResult<MetadataFinding> metadata,
+            List<OpenProposals> openProposals) {
+        this(reuse, validation, brokenElementIds, metadata, openProposals, null);
+    }
+
+    /** Every leg, ungrouped — the shape before legs and grouping existed. */
+    public ProjectHealthReport(HealthReport reuse, BatchResult<FileValidation> validation,
+            List<BrokenRef> brokenElementIds, BatchResult<MetadataFinding> metadata,
+            List<OpenProposals> openProposals, BatchResult<SchematronFinding> schematron) {
+        this(reuse, validation, brokenElementIds, metadata, openProposals, schematron, null, null, (List<String>) null);
+    }
+
+    /** True when nothing is left to review. Not part of {@link #isClean()}: a proposal is not an error. */
+    public boolean isReviewed() {
+        return openProposals.isEmpty();
+    }
+
+    /**
+     * Clean only when reuse-health, validation, element-id audit, the
+     * required-metadata policy, the subjectScheme's controlled values AND any
+     * Schematron schema all pass.
+     * Recommended-metadata findings (warnings) don't block — only error-level
+     * (missing required / forbidden / bad value). A run given no schema has an
+     * empty Schematron leg, which is clean.
+     */
+    public boolean isClean() {
+        // Unused keys and orphan topics are worth knowing, not errors: they are listed, and do not block
+        return reuse.brokenReferences().isEmpty() && reuse.undefinedKeys().isEmpty()
+                && validation.isClean() && brokenElementIds.isEmpty()
+                && conrefPush.isEmpty() && danglingIndex.isEmpty()
+                && metadata.findings().stream().noneMatch(f -> "error".equals(f.severity()))
+                && metadataRules.stream().noneMatch(g -> "error".equals(g.severity()))
+                && schematron.findings().stream().noneMatch(ProjectHealthReport::blocks)
+                && schematronRules.stream().noneMatch(g -> "error".equals(g.severity()))
+                // A value the scheme does not allow is usually a typo — "macos" for "mac" — and it changes which
+                // content a build includes without saying so. A gate that reported "ready" over one was the
+                // complaint that added this leg.
+                && conditions.findings().isEmpty();
+    }
+
+    /**
+     * Whether a house-rule finding stops the project being publish-ready.
+     *
+     * <p>A schema author can mark a rule {@code role="warning"} (or info, or
+     * hint), and the same courtesy the metadata policy extends to its
+     * recommended fields applies here: advisory rules are reported but do not
+     * fail the gate. A rule with no role is a rule the author did not soften,
+     * so it blocks — including a fired {@code <report>}, which is how a
+     * prohibition ("do not hardcode the product name") is written.
+     */
+    public static boolean blocks(SchematronFinding f) {
+        String role = f.role() == null ? "" : f.role().toLowerCase(java.util.Locale.ROOT);
+        return !(role.equals("warning") || role.equals("warn")
+                || role.equals("info") || role.equals("information") || role.equals("hint"));
+    }
+}
