@@ -3281,12 +3281,19 @@ public class HeadlessExecutor implements CommandExecutor {
                     "Failed to resolve scope '" + cmd.scope() + "': " + e.getMessage(), e);
         }
 
-        // canonical glossentry path -> its inventory entry
+        // canonical glossentry address -> its inventory entry. The address is the file AND the
+        // entry's id, because a <glossgroup> holds several entries in one file and a reference
+        // names one of them with a fragment. Keyed by file alone, a group of five terms was one
+        // nameless entry and every reference into it was "not a glossary term".
         java.util.Map<String, com.dogsbay.dogsbayaieditor.commands.results
                 .GlossaryAuditResult.Entry> glossByCanon = new java.util.LinkedHashMap<>();
         record RefAt(String file,
                 com.dogsbay.dogsbayaieditor.links.GlossaryScanner.TermRef ref) {}
         java.util.List<RefAt> refs = new ArrayList<>();
+
+        // canonical path -> the id of that file's own root entry, for the ordinary case: a keydef
+        // that names the file and no fragment means the entry the file IS.
+        java.util.Map<String, String> rootEntryIds = new java.util.HashMap<>();
 
         for (java.nio.file.Path p : files) {
             if (!p.getFileName().toString().toLowerCase(java.util.Locale.ROOT)
@@ -3294,11 +3301,15 @@ public class HeadlessExecutor implements CommandExecutor {
                 continue;
             }
             var scan = com.dogsbay.dogsbayaieditor.links.GlossaryScanner.scan(p.toFile());
-            if (scan.isGlossentry()) {
+            for (var entry : scan.entries()) {
                 glossByCanon.put(
-                        canonPath(p.toFile()),
+                        glossAddress(canonPath(p.toFile()), entry.id()),
                         new com.dogsbay.dogsbayaieditor.commands.results.GlossaryAuditResult
-                                .Entry(p.toString(), scan.entry().id(), scan.entry().term()));
+                                .Entry(p.toString(), entry.id(), entry.term()));
+            }
+            if (scan.rootEntry() != null) {
+                rootEntryIds.put(canonPath(p.toFile()),
+                        scan.rootEntry().id() == null ? "" : scan.rootEntry().id());
             }
             for (var r : scan.refs()) {
                 refs.add(new RefAt(p.toString(), r));
@@ -3317,8 +3328,14 @@ public class HeadlessExecutor implements CommandExecutor {
             java.util.Set<String> referenced = new java.util.HashSet<>();
             for (RefAt ra : refs) {
                 String key = ra.ref().keyref();
+                var def = keySpace.resolveLenient(key, "");
                 java.io.File target = keySpace.resolveHrefFileLenient(key, "");
-                String tcanon = target != null ? canonPath(target) : null;
+                // The fragment picks the entry out of the file: "units.dita#gl-hertz" is one of the
+                // group's entries, while "units.dita" is the group itself — a container, not a term,
+                // so an abbreviated-form pointing at it is as undefined as it looks.
+                String tcanon = target == null ? null
+                        : glossAddressOf(canonPath(target),
+                                fragmentOf(def == null ? null : def.href()), rootEntryIds);
                 boolean isGloss = tcanon != null && glossByCanon.containsKey(tcanon);
                 if ("abbreviated-form".equals(ra.ref().element())) {
                     // an abbreviated-form MUST resolve to a glossentry
@@ -3348,6 +3365,50 @@ public class HeadlessExecutor implements CommandExecutor {
 
         return new com.dogsbay.dogsbayaieditor.commands.results.GlossaryAuditResult(
                 entries, undefined, unused);
+    }
+
+    /**
+     * How one glossary entry is addressed: its file, and its {@code @id} when it has one.
+     *
+     * <p>An entry with no id can only be a file's root {@code <glossentry>} — there is no way to
+     * reference one inside a group without an id — so the bare path is the right address for it,
+     * and is what a reference with no fragment resolves to.
+     */
+    private static String glossAddress(String canonicalFile, String id) {
+        return id == null || id.isEmpty() ? canonicalFile : canonicalFile + "#" + id;
+    }
+
+    /**
+     * The address a reference reaches: the entry its fragment names, or the file's own entry.
+     *
+     * <p>Both halves matter. A keydef written {@code href="g-waveform.dita"} means the entry that
+     * file is, even though the entry carries an {@code @id} that the href does not repeat — the
+     * ordinary case, and the one that broke when addresses gained ids. A keydef written
+     * {@code href="units.dita#gl-hertz"} means one entry out of a group. A keydef naming a group
+     * with no fragment reaches neither, which is correct: a container is not a term.
+     */
+    private static String glossAddressOf(String canonicalFile, String fragment,
+            java.util.Map<String, String> rootEntryIds) {
+        if (fragment != null) {
+            return glossAddress(canonicalFile, fragment);
+        }
+        String rootId = rootEntryIds.get(canonicalFile);
+        return rootId == null ? canonicalFile : glossAddress(canonicalFile, rootId);
+    }
+
+    /** The id an href points at, or null when it names a file and nothing in it. */
+    private static String fragmentOf(String href) {
+        if (href == null) {
+            return null;
+        }
+        int hash = href.indexOf('#');
+        if (hash < 0 || hash == href.length() - 1) {
+            return null;
+        }
+        String fragment = href.substring(hash + 1);
+        // "topic-id/element-id" addresses an element inside a topic; the entry is the topic part.
+        int slash = fragment.indexOf('/');
+        return slash < 0 ? fragment : fragment.substring(0, slash);
     }
 
     private java.util.List<com.dogsbay.dogsbayaieditor.commands.results.BranchInfo>

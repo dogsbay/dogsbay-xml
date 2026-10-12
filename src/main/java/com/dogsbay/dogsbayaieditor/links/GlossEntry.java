@@ -68,10 +68,25 @@ public record GlossEntry(String glossterm, String surfaceForm, String acronym, S
 	 * has hundreds of topics.
 	 */
 	public static GlossEntry read(File file) {
+		return read(file, null);
+	}
+
+	/**
+	 * The entry {@code href}'s fragment names, or the file's own entry when it names none.
+	 *
+	 * <p>A {@code <glossgroup>} holds several entries in one file, each referenced as
+	 * {@code units.dita#gl-hertz}. Reading only the root element returned nothing for every one of
+	 * them, so an {@code <abbreviated-form>} pointing into a group rendered empty — the same fault
+	 * that was reported for root-level entries on 2026-10-08, in the one place it had been missed.
+	 * An href naming the group itself still answers null: a container is not a term.
+	 *
+	 * @param href the key's href, whose fragment (if any) picks the entry; the path part is ignored
+	 */
+	public static GlossEntry read(File file, String href) {
 		if (file == null || !file.isFile() || !looksLikeAnEntry(file)) {
 			return null;
 		}
-		Reader reader = new Reader();
+		Reader reader = new Reader(fragmentOf(href));
 		try {
 			var sax = HardenedSax.newReader();
 			sax.setContentHandler(reader);
@@ -83,6 +98,20 @@ public record GlossEntry(String glossterm, String surfaceForm, String acronym, S
 			return null;        // unreadable is the same as absent to every caller
 		}
 		return reader.entry();
+	}
+
+	/** The id a fragment names, or null; {@code #topic/element} addresses the topic part. */
+	private static String fragmentOf(String href) {
+		if (href == null) {
+			return null;
+		}
+		int hash = href.indexOf('#');
+		if (hash < 0 || hash == href.length() - 1) {
+			return null;
+		}
+		String fragment = href.substring(hash + 1);
+		int slash = fragment.indexOf('/');
+		return slash < 0 ? fragment : fragment.substring(0, slash);
 	}
 
 	/** How much of the file the word {@code glossentry} has to appear in for it to be worth parsing. */
@@ -99,7 +128,10 @@ public record GlossEntry(String glossterm, String surfaceForm, String acronym, S
 	private static boolean looksLikeAnEntry(File file) {
 		try (var in = new java.io.FileInputStream(file)) {
 			byte[] head = in.readNBytes(HEAD_BYTES);
-			return new String(head, java.nio.charset.StandardCharsets.UTF_8).contains("glossentry");
+			String text = new String(head, java.nio.charset.StandardCharsets.UTF_8);
+			// "glossgroup" as well: a group's first entry can sit past this window, behind a title
+			// and a prolog, and the root tag is the one thing guaranteed to be inside it.
+			return text.contains("glossentry") || text.contains("glossgroup");
 		} catch (Exception e) {
 			return false;
 		}
@@ -122,6 +154,20 @@ public record GlossEntry(String glossterm, String surfaceForm, String acronym, S
 	/** Collects the forms, in document order, with each one's status. */
 	private static final class Reader extends DefaultHandler {
 
+		/** The {@code @id} to look for inside the file, or null when the root element is the entry. */
+		private final String wantedId;
+		/** Elements open inside the wanted entry; -1 once it has closed. */
+		private int inside;
+		private boolean done;
+
+		Reader() {
+			this(null);
+		}
+
+		Reader(String wantedId) {
+			this.wantedId = wantedId;
+		}
+
 		private boolean sawRoot;
 		private String glossterm;
 		private String surfaceForm;
@@ -136,13 +182,26 @@ public record GlossEntry(String glossterm, String surfaceForm, String acronym, S
 
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes a) throws SAXException {
+			if (done) {
+				return;
+			}
 			String name = local(localName, qName);
 			if (!sawRoot) {
-				sawRoot = true;
-				if (!isGlossentry(name, a.getValue("class"))) {
-					throw new StopParsing();
+				if (wantedId == null) {
+					sawRoot = true;
+					if (!isGlossentry(name, a.getValue("class"))) {
+						throw new StopParsing();
+					}
+					return;
+				}
+				// Skipping towards the entry the fragment names, however deep the groups go.
+				if (isGlossentry(name, a.getValue("class")) && wantedId.equals(a.getValue("id"))) {
+					sawRoot = true;
 				}
 				return;
+			}
+			if (wantedId != null) {
+				inside++;
 			}
 			switch (name) {
 				// A glossterm nested in a glossAlt is a variant of the term, not the term: only the
@@ -176,6 +235,14 @@ public record GlossEntry(String glossterm, String surfaceForm, String acronym, S
 
 		@Override
 		public void endElement(String uri, String localName, String qName) {
+			if (done) {
+				return;
+			}
+			// The wanted entry's own end tag: everything after it belongs to another entry.
+			if (sawRoot && wantedId != null && inside-- == 0) {
+				done = true;
+				return;
+			}
 			if (collecting == null) {
 				if ("glossAlt".equals(local(localName, qName))) {
 					// Forms with no status after them, kept in the order they were written.

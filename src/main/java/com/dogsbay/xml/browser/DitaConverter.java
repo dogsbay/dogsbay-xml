@@ -353,8 +353,10 @@ public class DitaConverter {
                 // document's business, and the stylesheet decides it per mention.
                 // Each target is opened to find out whether it is an entry; the reader gives up at the
                 // root element when it is not, and this whole walk is behind the map+ditaval cache.
+                // The href goes with it: its fragment picks one entry out of a <glossgroup>, which
+                // holds several, and without it a mention of any of them rendered empty.
                 com.dogsbay.dogsbayaieditor.links.GlossEntry gloss =
-                        com.dogsbay.dogsbayaieditor.links.GlossEntry.read(targetFile);
+                        com.dogsbay.dogsbayaieditor.links.GlossEntry.read(targetFile, def.href());
                 if (gloss != null) {
                     xml.append(" glossterm=\"").append(escapeAttr(gloss.glossterm())).append('"');
                     if (gloss.surfaceForm() != null) {

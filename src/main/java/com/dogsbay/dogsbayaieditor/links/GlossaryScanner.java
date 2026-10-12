@@ -34,22 +34,41 @@ import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * Extracts DITA 1.3 glossary facts from a topic in one hardened SAX pass (same parsing
- * hardening as {@link LinkExtractor}): whether the topic is a {@code <glossentry>}
- * (with its {@code @id}, {@code <glossterm>}, and surface forms), and every
+ * hardening as {@link LinkExtractor}): every {@code <glossentry>} the file holds (with its
+ * {@code @id}, {@code <glossterm>}, and surface forms), and every
  * {@code <abbreviated-form>}/{@code <term>} that references a glossary key. An
  * {@code glossary_audit} aggregates these into the term inventory, undefined
  * abbreviated-forms, and unused glossentries.
+ *
+ * <p>Every entry, not one: a {@code <glossgroup>} is a container for several, addressed by
+ * {@code file.dita#entry-id}, and it is how a project keeps related terms together — the units of
+ * a measurement, say. Reading only a root {@code <glossentry>} made each of those entries invisible
+ * and every reference to one "not a glossary term": four such false positives on the Audacity
+ * tutorial's own glossary, found in CI on 2026-10-12. Groups nest, so this follows them down.
  */
 public final class GlossaryScanner {
 
-    /** What one topic contributes to the glossary picture. */
-    public record GlossScan(GlossEntry entry, List<TermRef> refs) {
+    /**
+     * What one topic contributes to the glossary picture.
+     *
+     * @param entries every {@code <glossentry>} in the file, in document order
+     * @param refs every reference to a glossary key in the file
+     * @param rootIsEntry whether the file's root element is itself an entry — which is what makes a
+     *     reference with no fragment mean the first of {@code entries} rather than nothing
+     */
+    public record GlossScan(List<GlossEntry> entries, List<TermRef> refs, boolean rootIsEntry) {
         public GlossScan {
+            entries = entries == null ? List.of() : List.copyOf(entries);
             refs = refs == null ? List.of() : List.copyOf(refs);
         }
-        /** True when the topic is a glossary entry. */
+
+        /** The file's own entry, when its root element is one. */
+        public GlossEntry rootEntry() {
+            return rootIsEntry && !entries.isEmpty() ? entries.get(0) : null;
+        }
+        /** True when the file holds at least one glossary entry. */
         public boolean isGlossentry() {
-            return entry != null;
+            return !entries.isEmpty();
         }
     }
 
@@ -70,7 +89,7 @@ public final class GlossaryScanner {
         try (InputStream in = new FileInputStream(file)) {
             return scan(new InputSource(in));
         } catch (IOException e) {
-            return new GlossScan(null, List.of());
+            return new GlossScan(List.of(), List.of(), false);
         }
     }
 
@@ -88,22 +107,21 @@ public final class GlossaryScanner {
         } catch (Exception e) {
             // Malformed mid-edit files are normal — keep what we have.
         }
-        GlossEntry entry = handler.isGlossentry
-                ? new GlossEntry(handler.id, handler.term.toString().trim(),
-                        handler.surfaceForms)
-                : null;
-        return new GlossScan(entry, handler.refs);
+        return new GlossScan(handler.entries, handler.refs, handler.rootIsEntry);
     }
 
     private static final class Handler extends DefaultHandler {
         final List<TermRef> refs = new ArrayList<>();
-        final List<String> surfaceForms = new ArrayList<>();
-        final StringBuilder term = new StringBuilder();
+        final List<GlossEntry> entries = new ArrayList<>();
+        boolean rootIsEntry;
 
-        private boolean isGlossentry;
         private boolean rootSeen;
+
+        /** The entry being read, or null between entries. */
         private String id;
-        private int depth;
+        private StringBuilder term;
+        private List<String> surfaceForms;
+
         private boolean inGlossterm;
         private boolean inSurfaceForm;
         private final StringBuilder surface = new StringBuilder();
@@ -116,18 +134,23 @@ public final class GlossaryScanner {
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes a) {
-            depth++;
             String name = localName != null && !localName.isEmpty() ? localName : qName;
             if (!rootSeen) {
                 rootSeen = true;
-                if ("glossentry".equals(name)) {
-                    isGlossentry = true;
-                    id = a.getValue("id");
-                }
+                rootIsEntry = "glossentry".equals(name);
             }
-            if (isGlossentry) {
+            if ("glossentry".equals(name)) {
+                // A glossentry nested inside another is not a thing DITA allows, so an entry met
+                // while one is open closes the first rather than being lost.
+                closeEntry();
+                id = a.getValue("id");
+                term = new StringBuilder();
+                surfaceForms = new ArrayList<>();
+            } else if (term != null) {
                 if ("glossterm".equals(name)) {
-                    inGlossterm = true;
+                    // The entry's own term is the first one met: a later <glossterm> is a variant
+                    // inside a <glossAlt>, which is a different thing (GlossEntry reads those).
+                    inGlossterm = term.isEmpty();
                 } else if ("glossAbbreviation".equals(name) || "glossAcronym".equals(name)
                         || "glossShortForm".equals(name) || "glossSynonym".equals(name)) {
                     inSurfaceForm = true;
@@ -154,7 +177,6 @@ public final class GlossaryScanner {
 
         @Override
         public void endElement(String uri, String localName, String qName) {
-            depth--;
             String name = localName != null && !localName.isEmpty() ? localName : qName;
             if ("glossterm".equals(name)) {
                 inGlossterm = false;
@@ -166,7 +188,21 @@ public final class GlossaryScanner {
                 if (!s.isEmpty()) {
                     surfaceForms.add(s);
                 }
+            } else if ("glossentry".equals(name)) {
+                closeEntry();
             }
+        }
+
+        /** Keep the entry being read, if there is one. */
+        private void closeEntry() {
+            if (term != null) {
+                entries.add(new GlossEntry(id, term.toString().trim(), surfaceForms));
+            }
+            id = null;
+            term = null;
+            surfaceForms = null;
+            inGlossterm = false;
+            inSurfaceForm = false;
         }
     }
 
