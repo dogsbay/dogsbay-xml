@@ -242,7 +242,7 @@ dependencies {
     implementation("ch.qos.logback:logback-core:1.5.18")
 
     // SnakeYAML
-    implementation("org.yaml:snakeyaml:2.5")
+    implementation("org.yaml:snakeyaml:2.7")
 
     // Git Integration
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
