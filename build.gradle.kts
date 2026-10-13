@@ -238,8 +238,8 @@ dependencies {
 
     // SLF4J + Logback
     implementation("org.slf4j:slf4j-api:${property("slf4jVersion")}")
-    implementation("ch.qos.logback:logback-classic:1.5.18")
-    implementation("ch.qos.logback:logback-core:1.5.18")
+    implementation("ch.qos.logback:logback-classic:1.6.5")
+    implementation("ch.qos.logback:logback-core:1.6.5")
 
     // SnakeYAML
     implementation("org.yaml:snakeyaml:2.7")
