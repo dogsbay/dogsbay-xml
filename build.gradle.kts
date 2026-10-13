@@ -461,9 +461,10 @@ tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJ
 //     which are genuinely source and stay committed.
 //
 // syncLib keeps the first kind current and removes the copies left by versions we have
-// moved off, so the stale-copy hazard is prevented rather than merely reported; checkLib
-// still fails on both hazards, since neither is only syncLib's to cause — a resolvable jar
-// that has been committed, and two versions of one artifact sitting in lib/ at once.
+// moved off. It is not automatic — `build` does not run it — so checkLib fails on a stale
+// copy as well as on the two hazards it has always covered: a resolvable jar that has been
+// committed, and two versions of one artifact in lib/ at once. Between them, running
+// syncLib is the only way to leave lib/ in a state `check` accepts.
 // ── Third-party licence report ──────────────────────────────────────────────
 // Resolves every runtime dependency's POM and reads its <licenses>, writing
 // THIRD-PARTY.md. Covers the Maven half only: the jars under lib/ that have no
@@ -661,7 +662,7 @@ fun trackedLibJars(): List<String>? =
     }
 
 tasks.register("checkLib") {
-    description = "Fail when lib/ holds a committed Maven jar or two versions of one artifact"
+    description = "Fail when lib/ holds a committed Maven jar, a stale copy, or two versions of one artifact"
     val libDir = file("lib")
     val resolved = configurations.named("runtimeClasspath")
     doLast {
@@ -683,6 +684,24 @@ tasks.register("checkLib") {
             if (committedButResolvable.isNotEmpty()) {
                 problems += "These lib/ jars are resolved from Maven and must not be committed " +
                     "(syncLib writes them):\n  " + committedButResolvable.joinToString("\n  ")
+            }
+
+            // A jar that is neither resolved nor committed is a copy syncLib made for a
+            // version the build has moved off. syncLib removes these, so finding one means
+            // syncLib has not run since the version changed — and `build` does not run it,
+            // only order itself after it when both are asked for. It matters because it is
+            // lib/* that the dev launchers read: run.sh, bin/dogsbay-xml and the
+            // loader.properties syncLib writes. The compile classpath names its lib/ jars
+            // one by one, so a stale copy never reaches a build or a test, and nothing else
+            // would report it.
+            val staleCopies = libDir.listFiles { f -> f.name.endsWith(".jar") }
+                ?.map { it.name }
+                ?.filter { it !in fromMaven && it !in tracked }
+                ?.sorted() ?: emptyList()
+            if (staleCopies.isNotEmpty()) {
+                problems += "These lib/ jars are neither resolved from Maven nor committed, so " +
+                    "they are copies left by a version this build no longer uses, and the dev " +
+                    "launchers would load them:\n  " + staleCopies.joinToString("\n  ")
             }
         }
 
