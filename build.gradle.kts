@@ -211,7 +211,7 @@ dependencies {
     // Apache Commons
     implementation("commons-logging:commons-logging:1.3.3")
     implementation("commons-net:commons-net:3.9.0")
-    implementation("commons-io:commons-io:2.19.0")
+    implementation("commons-io:commons-io:2.22.0")
 
     // Apache Ant (for DITA-OT)
     implementation("org.apache.ant:ant:1.10.15")
