@@ -219,7 +219,7 @@ dependencies {
     implementation("org.apache.ant:ant-apache-resolver:1.10.15")
 
     // Guava
-    implementation("com.google.guava:guava:33.4.8-jre")
+    implementation("com.google.guava:guava:33.7.2-jre")
 
     // ICU4J
     implementation("com.ibm.icu:icu4j:77.1")
