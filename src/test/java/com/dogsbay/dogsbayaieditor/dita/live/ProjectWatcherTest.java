@@ -59,6 +59,26 @@ class ProjectWatcherTest {
     }
 
     /**
+     * Wait for {@code expected} changes to arrive, then for the watcher to go quiet.
+     *
+     * <p>A fixed sleep has to be long enough for the slowest watcher on the slowest runner, and
+     * when it is not, the failure says only that a number was wrong — it cannot distinguish a
+     * change that never came from one that came late. This waits for the count to arrive and
+     * then keeps waiting a while longer, so a late extra instalment still fails the assertion
+     * that follows. A genuinely lost event still fails, after the timeout, which is what should
+     * happen.
+     *
+     * @param debounceMillis the watcher's debounce, since the quiet period has to outlast it
+     */
+    private void awaitChanges(int expected, long debounceMillis) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 30_000;
+        while (changes.get() < expected && System.currentTimeMillis() < deadline) {
+            Thread.sleep(50);
+        }
+        Thread.sleep(debounceMillis + 1500);
+    }
+
+    /**
      * Five files written back to back arrive as one change, not five.
      *
      * <p>The debounce here is longer than the rest of the class uses, and the reason is the
@@ -84,7 +104,7 @@ class ProjectWatcherTest {
         for (int i = 0; i < 5; i++) {
             Files.writeString(dir.resolve("topics/t" + i + ".dita"), "<topic/>");
         }
-        Thread.sleep(8000);
+        awaitChanges(1, 3000);
         assertThat(changes.get()).isEqualTo(1);
     }
 
@@ -104,7 +124,7 @@ class ProjectWatcherTest {
         assertThat(changes.get()).isZero();
 
         Files.writeString(dir.resolve("guide.ditamap"), "<map/>");
-        settle();
+        awaitChanges(1, 300);
         assertThat(changes.get()).isEqualTo(1);
     }
 
@@ -119,18 +139,36 @@ class ProjectWatcherTest {
         Path moved = Files.createDirectories(dir.resolve("incoming/topics"));
         Files.writeString(moved.resolve("a.dita"), "<topic/>");
         Files.move(dir.resolve("incoming/topics"), dir.resolve("topics"));
-        settle();
+        awaitChanges(1, 300);
         assertThat(changes.get()).isEqualTo(1);
     }
 
+    /**
+     * A folder made after the watcher started is watched, so a file written in it is reported.
+     *
+     * <p>The seed file is what makes this deterministic, and it is worth saying why. A folder
+     * is watched only once the watcher has <em>processed</em> its creation, which happens on
+     * its own thread whenever it gets there; a file written into the folder before that is not
+     * seen, and never will be. The first version waited a fixed 2.5s and then wrote, which
+     * assumes the watcher kept up — on the Windows runner on 2026-10-13 it did not, and the
+     * write was lost, giving 0 where 1 was expected.
+     *
+     * <p>An empty folder is deliberately not a change, so its creation signals nothing to wait
+     * for. A folder with a file in it is a change, so creating one and waiting for that change
+     * proves the watch is in place before the part being tested runs. What is asserted is
+     * unchanged: a write in a folder that did not exist at startup is reported, exactly once.
+     */
     @Test
     void watchesFoldersCreatedAfterItStarted() throws Exception {
         start(null);
         Files.createDirectories(dir.resolve("new/deeper"));
-        settle();
+        Files.writeString(dir.resolve("new/deeper/seed.dita"), "<topic/>");
+        awaitChanges(1, 300);
+        assertThat(changes.get()).as("the new folder's arrival is itself a change").isEqualTo(1);
+
         changes.set(0);
         Files.writeString(dir.resolve("new/deeper/topic.dita"), "<topic/>");
-        settle();
-        assertThat(changes.get()).isEqualTo(1);
+        awaitChanges(1, 300);
+        assertThat(changes.get()).as("a later write in that folder is reported too").isEqualTo(1);
     }
 }
