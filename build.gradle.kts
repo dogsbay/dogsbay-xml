@@ -222,7 +222,7 @@ dependencies {
     implementation("com.google.guava:guava:33.7.2-jre")
 
     // ICU4J
-    implementation("com.ibm.icu:icu4j:77.1")
+    implementation("com.ibm.icu:icu4j:78.3")
 
     // Jackson JSON/YAML, versioned by its own BOM rather than one number per artifact.
     // The family does not share a version: at the time of writing jackson-annotations
