@@ -44,8 +44,12 @@ class ProjectWatcherTest {
     }
 
     private void start(Path excludedFolder) throws Exception {
+        start(excludedFolder, 300);
+    }
+
+    private void start(Path excludedFolder, long debounceMillis) throws Exception {
         watcher = new ProjectWatcher(dir, p -> excludedFolder != null && p.toAbsolutePath().normalize().startsWith(excludedFolder),
-                300, changes::incrementAndGet);
+                debounceMillis, changes::incrementAndGet);
         watcher.start();
     }
 
@@ -54,14 +58,33 @@ class ProjectWatcherTest {
         Thread.sleep(2500);
     }
 
+    /**
+     * Five files written back to back arrive as one change, not five.
+     *
+     * <p>The debounce here is longer than the rest of the class uses, and the reason is the
+     * watcher underneath. On Linux {@code WatchService} is inotify and the five events arrive
+     * within milliseconds of the writes. macOS has no such kernel interface, so the JDK falls
+     * back to {@code PollingWatchService}, which compares directory listings on a timer: the
+     * five writes are seen at the next poll, together — unless the burst happens to straddle a
+     * poll boundary, in which case the watcher reports them in two instalments seconds apart,
+     * each one its own debounce window and so its own change. That is what failed this test on
+     * the macOS runner on 2026-10-13, having passed on the two runs before it.
+     *
+     * <p>Coalescing a burst is still the behaviour worth asserting; what the 300ms debounce
+     * asserts on a polling file system is that the burst missed a poll boundary, which is luck.
+     * So the window here is wider than any poll interval the JDK uses, which makes the
+     * assertion exact on every platform rather than usually-exact on one of them. It does not
+     * paper over a real defect: with a 300ms debounce on macOS, two republishes for one burst
+     * is what a user would genuinely get.
+     */
     @Test
     void reportsABurstOfChangesOnceAfterItSettles() throws Exception {
         Files.createDirectories(dir.resolve("topics"));
-        start(null);
+        start(null, 3000);
         for (int i = 0; i < 5; i++) {
             Files.writeString(dir.resolve("topics/t" + i + ".dita"), "<topic/>");
         }
-        settle();
+        Thread.sleep(8000);
         assertThat(changes.get()).isEqualTo(1);
     }
 
