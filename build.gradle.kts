@@ -13,7 +13,7 @@ plugins {
     application
     id("org.openjfx.javafxplugin") version "0.1.0"
     id("org.beryx.runtime") version "2.0.1"
-    id("com.gradleup.shadow") version "9.4.2"
+    id("com.gradleup.shadow") version "9.6.1"
 }
 
 group = "com.dogsbay"
