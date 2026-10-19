@@ -209,7 +209,7 @@ dependencies {
     implementation("com.formdev:flatlaf:3.7.2")
 
     // Apache Commons
-    implementation("commons-logging:commons-logging:1.3.3")
+    implementation("commons-logging:commons-logging:1.4.0")
     implementation("commons-net:commons-net:3.9.0")
     implementation("commons-io:commons-io:2.22.0")
 
